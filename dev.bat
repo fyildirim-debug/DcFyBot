@@ -205,23 +205,28 @@ echo   Log API       : http://localhost:!WEBPORT!/api/stats/file-logs
 echo   Log Stream    : http://localhost:!WEBPORT!/api/stats/file-logs/stream
 echo.
 
-:: --tail: ayri pencerede log izle
+:: --tail: ayri pencerede canli log izle
 if "%1"=="--tail" (
-    start "FyDCBot Logs" cmd /k "title FyDCBot Logs & color 0A & echo Log izleniyor... & powershell -Command Get-Content '!LOG_FILE!' -Wait -Tail 50"
+    start "FyDCBot Logs" cmd /k "title FyDCBot Logs & color 0A & echo Log izleniyor: !LOG_FILE! & echo Bekleniyor... & timeout /t 3 /nobreak >nul & powershell -Command Get-Content '!LOG_FILE!' -Wait -Tail 50"
 )
 
 echo ===================================================
+echo.
+echo   [!] Log dosyasi Node.js tarafindan yazilir.
+echo   [!] Canli izlemek icin ayri terminalde:
+echo       powershell -Command "Get-Content logs\!TODAY!.log -Wait -Tail 50"
+echo       veya: dev.bat --tail
 echo.
 
 set NODE_ENV=development
 set DEBUG=fydcbot:*
 
-echo [%DATE% %TIME%] FyDCBot DEV baslatildi >> "!LOG_FILE!"
-powershell -Command "node --watch src/index.js 2>&1 | Tee-Object -FilePath '!LOG_FILE!' -Append"
+:: Node.js logger zaten logs/YYYY-MM-DD.log dosyasina yaziyor
+:: Tee-Object KULLANMA - ayni dosyaya iki islem yazamaz (EBUSY hatasi)
+node --watch src/index.js
 
 if %errorlevel% neq 0 (
     echo.
     echo [!!] FyDCBot durdu. Hata: %errorlevel%
-    echo [%DATE% %TIME%] DURDU - Hata: %errorlevel% >> "!LOG_FILE!"
     pause
 )

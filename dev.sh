@@ -364,4 +364,6 @@ if [ "$1" = "--tail" ]; then
     fi
 fi
 
-node --watch src/index.js 2>&1 | tee -a "logs/$TODAY.log"
+# Node.js logger zaten logs/YYYY-MM-DD.log dosyasina yaziyor
+# tee KULLANMA - ayni dosyaya iki islem yazamaz (EBUSY hatasi)
+node --watch src/index.js
