@@ -1,6 +1,7 @@
 {
-  "version": "1.0.3.0",
+  "version": "1.0.3.1",
   "history": [
+    { "version": "1.0.3.1", "date": "2026-03-14", "summary": "dev.bat batch syntax hatasi duzeltildi: inline node yerine dev-check.js helper, goto tabanli akis" },
     { "version": "1.0.3.0", "date": "2026-03-14", "summary": "Dosya log sistemi: logs/YYYY-MM-DD.log, stderr yakalama, SSE canli stream, dev tail modu" },
     { "version": "1.0.2.0", "date": "2026-03-14", "summary": "dev.sh/bat: Gelistirici modu eklendi - sistem bilgisi, DB testi, dosya kontrolu, watch modu" },
     { "version": "1.0.1.1", "date": "2026-03-14", "summary": "DB port cakismasi duzeltildi: 5432->5433, docker-compose DB_PORT degiskeni, baglanti test edildi" },

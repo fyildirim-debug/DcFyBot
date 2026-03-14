@@ -18,50 +18,28 @@ echo   Tarih       : %DATE% %TIME%
 echo   Bilgisayar  : %COMPUTERNAME%
 echo   Kullanici   : %USERNAME%
 echo   Calisma Diz : %CD%
-echo   Windows     : %OS%
 
-for /f "tokens=4-5 delims=. " %%i in ('ver') do set WINVER=%%i.%%j
-echo   Win Versiyon: %WINVER%
-
-:: Node.js
 where node >nul 2>&1
-if %errorlevel% equ 0 (
-    for /f "tokens=*" %%i in ('node -v') do echo   Node.js     : %%i [OK]
-    for /f "tokens=*" %%i in ('npm -v') do echo   npm         : v%%i
-) else (
+if %errorlevel% neq 0 (
     echo   Node.js     : BULUNAMADI [!!]
+    pause
+    exit /b 1
 )
+for /f "tokens=*" %%i in ('node -v') do echo   Node.js     : %%i [OK]
+for /f "tokens=*" %%i in ('npm -v') do echo   npm         : v%%i
 
-:: Docker
 where docker >nul 2>&1
 if %errorlevel% equ 0 (
-    for /f "tokens=*" %%i in ('docker --version') do echo   Docker      : %%i [OK]
-    docker info >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo   Docker Durum: Calisiyor [OK]
-    ) else (
-        echo   Docker Durum: CALISMYOR [!!]
-    )
+    for /f "tokens=*" %%i in ('docker --version') do echo   Docker      : %%i
 ) else (
     echo   Docker      : BULUNAMADI [!!]
 )
 
-:: Git
 where git >nul 2>&1
 if %errorlevel% equ 0 (
-    for /f "tokens=*" %%i in ('git --version') do echo   Git         : %%i
-    for /f "tokens=*" %%i in ('git branch --show-current 2^>nul') do set BRANCH=%%i
-    for /f "tokens=*" %%i in ('git rev-parse --short HEAD 2^>nul') do set COMMIT=%%i
-    echo   Branch      : !BRANCH! @ !COMMIT!
-
-    :: Degisiklik sayisi
-    set DIRTY=0
-    for /f %%i in ('git status --porcelain 2^>nul ^| find /c /v ""') do set DIRTY=%%i
-    if !DIRTY! gtr 0 (
-        echo   Degisiklik  : !DIRTY! dosya degismis [!]
-    ) else (
-        echo   Degisiklik  : Temiz [OK]
-    )
+    for /f "tokens=*" %%i in ('git branch --show-current 2^>nul') do set "BRANCH=%%i"
+    for /f "tokens=*" %%i in ('git rev-parse --short HEAD 2^>nul') do set "COMMIT=%%i"
+    echo   Git         : !BRANCH! @ !COMMIT!
 )
 
 echo.
@@ -71,165 +49,128 @@ echo.
 :: ============================================================
 echo [DEBUG] ========== ENV KONTROL ==========
 
-if exist .env (
-    echo   .env        : Mevcut [OK]
-
-    for /f "tokens=1,* delims==" %%a in ('findstr /b "DATABASE_URL" .env 2^>nul') do (
-        set "DBURL=%%b"
-    )
-    if defined DBURL (
-        :: Basit maskeleme
-        echo   DATABASE_URL: postgresql://***:***@...
-    ) else (
-        echo   DATABASE_URL: AYARLANMAMIS [!!]
-    )
-
-    for /f "tokens=1,* delims==" %%a in ('findstr /b "PORT=" .env 2^>nul') do set "WEBPORT=%%b"
-    if not defined WEBPORT set WEBPORT=3000
-    echo   PORT        : !WEBPORT!
-
-    for /f "tokens=1,* delims==" %%a in ('findstr /b "JWT_SECRET" .env 2^>nul') do set "JWT=%%b"
-    if defined JWT (
-        echo   JWT_SECRET  : !JWT:~0,10!...
-    ) else (
-        echo   JWT_SECRET  : AYARLANMAMIS [!!]
-    )
-) else (
-    echo   .env        : YOK - olusturuluyor...
+if not exist .env (
+    echo   .env YOK - olusturuluyor...
     copy .env.example .env >nul 2>&1
-    echo   .env        : .env.example'dan kopyalandi [OK]
-    set WEBPORT=3000
 )
+echo   .env        : Mevcut [OK]
+
+set "WEBPORT=3000"
+for /f "tokens=1,* delims==" %%a in ('findstr /b "PORT=" .env 2^>nul') do set "WEBPORT=%%b"
+echo   PORT        : !WEBPORT!
 
 echo.
 
 :: ============================================================
-:: DOCKER KONTEYNER DURUMU
+:: DOCKER KONTEYNERLER
 :: ============================================================
 echo [DEBUG] ========== DOCKER KONTEYNERLER ==========
 
 where docker >nul 2>&1
-if %errorlevel% equ 0 (
-    docker info >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo   --- FyDCBot Konteynerleri ---
-        docker ps -a --filter "name=fydcbot" --format "  {{.Names}}  {{.Status}}  {{.Ports}}" 2>nul
-        echo.
+if %errorlevel% neq 0 goto :SKIP_DOCKER
 
-        :: fydcbot-db calisiyor mu?
-        docker ps --filter "name=fydcbot-db" --format "{{.Names}}" 2>nul | findstr /c:"fydcbot-db" >nul 2>&1
-        if !errorlevel! neq 0 (
-            echo   PostgreSQL container calismyor, baslatiliyor...
-            docker compose up -d db 2>nul || docker-compose up -d db 2>nul
-            echo   Bekleniyor (5sn^)...
-            timeout /t 5 /nobreak >nul
-        )
-    ) else (
-        echo   Docker calismyor, konteyner bilgisi alinamadi
-    )
-) else (
-    echo   Docker bulunamadi
+docker info >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   Docker calismyor [!!]
+    goto :SKIP_DOCKER
 )
 
+echo   Docker calisiyor [OK]
+docker ps -a --filter "name=fydcbot" --format "  {{.Names}}  {{.Status}}  {{.Ports}}" 2>nul
+
+:: DB container kontrol
+docker ps --filter "name=fydcbot-db" --format "{{.Names}}" 2>nul | findstr /c:"fydcbot-db" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   PostgreSQL container calismyor, baslatiliyor...
+    docker compose up -d db 2>nul
+    echo   Bekleniyor...
+    timeout /t 5 /nobreak >nul
+)
+
+:SKIP_DOCKER
 echo.
+
+:: ============================================================
+:: BAGIMLILIKLAR
+:: ============================================================
+if not exist node_modules (
+    echo [DEBUG] ========== BAGIMLILIKLAR ==========
+    echo   node_modules YOK - yukleniyor...
+    call npm install
+    echo.
+)
 
 :: ============================================================
 :: VERITABANI TESTI
 :: ============================================================
 echo [DEBUG] ========== VERITABANI TESTI ==========
 
-where node >nul 2>&1
-if %errorlevel% equ 0 (
-    if exist node_modules (
-        :: DB baglanti testi
-        for /f "tokens=*" %%i in ('node -e "require('dotenv').config();const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:5000});p.query('SELECT current_database() as db, pg_size_pretty(pg_database_size(current_database())) as size').then(r=>{console.log('OK '+r.rows[0].db+' '+r.rows[0].size);p.end()}).catch(e=>{console.log('FAIL '+e.message);p.end()})" 2^>nul') do set "DBTEST=%%i"
+if not exist node_modules goto :SKIP_DB
 
-        echo   !DBTEST!
-
-        if "!DBTEST:~0,2!"=="OK" (
-            echo   Baglanti    : BASARILI [OK]
-
-            :: Tablo sayisi
-            for /f "tokens=*" %%i in ('node -e "require('dotenv').config();const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL});p.query(\"SELECT count(*) as c FROM information_schema.tables WHERE table_schema='public'\").then(r=>{console.log(r.rows[0].c);p.end()}).catch(()=>{console.log(0);p.end()})" 2^>nul') do echo   Tablo sayisi: %%i
-
-            :: Migration
-            for /f "tokens=*" %%i in ('node -e "require('dotenv').config();const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL});p.query('SELECT COALESCE(MAX(version),0) as v FROM _migrations').then(r=>{console.log(r.rows[0].v);p.end()}).catch(()=>{console.log(0);p.end()})" 2^>nul') do echo   Migration   : v%%i
-
-            :: Setup durumu
-            for /f "tokens=*" %%i in ('node -e "require('dotenv').config();const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL});p.query(\"SELECT value FROM system_settings WHERE key='setup_complete'\").then(r=>{console.log(r.rows[0]?.value||'false');p.end()}).catch(()=>{console.log('false');p.end()})" 2^>nul') do (
-                if "%%i"=="true" (
-                    echo   Kurulum     : TAMAMLANMIS [OK]
-                ) else (
-                    echo   Kurulum     : TAMAMLANMAMIS [!] ^(setup wizard bekliyor^)
-                )
-            )
-        ) else (
-            echo   Baglanti    : BASARISIZ [!!]
-            echo   Hata        : !DBTEST:~5!
-        )
-    ) else (
-        echo   node_modules yok, DB testi atlaniyor
-    )
+for /f "tokens=1,2,3,4 delims=|" %%a in ('node src/utils/dev-check.js db-test 2^>nul') do (
+    set "DB_STATUS=%%a"
+    set "DB_NAME=%%b"
+    set "DB_SIZE=%%c"
+    set "DB_VER=%%d"
 )
 
-echo.
-
-:: ============================================================
-:: BAGIMLILIK KONTROL
-:: ============================================================
-echo [DEBUG] ========== BAGIMLILIKLAR ==========
-
-if exist node_modules (
-    :: Kritik paketler
-    for %%p in (discord.js express pg @anthropic-ai/sdk openai jsonwebtoken bcryptjs) do (
-        if exist "node_modules\%%p" (
-            for /f "tokens=*" %%v in ('node -e "try{console.log(require('%%p/package.json').version)}catch{console.log('?')}" 2^>nul') do (
-                echo     %%p: v%%v [OK]
-            )
-        ) else (
-            echo     %%p: EKSIK [!!]
-        )
-    )
+if "!DB_STATUS!"=="OK" (
+    echo   Baglanti    : BASARILI [OK]
+    echo   Veritabani  : !DB_NAME! ^(!DB_SIZE!^)
+    echo   PostgreSQL  : !DB_VER!
 ) else (
-    echo   node_modules: YOK
-    echo   npm install calistiriliyor...
-    call npm install
+    echo   Baglanti    : BASARISIZ [!!]
+    echo   Hata        : !DB_NAME!
+    goto :SKIP_DB_DETAIL
 )
 
+for /f "tokens=*" %%i in ('node src/utils/dev-check.js db-tables 2^>nul') do echo   Tablo sayisi: %%i
+for /f "tokens=*" %%i in ('node src/utils/dev-check.js db-migration 2^>nul') do echo   Migration   : v%%i
+
+for /f "tokens=*" %%i in ('node src/utils/dev-check.js db-setup 2^>nul') do set "SETUP_OK=%%i"
+if "!SETUP_OK!"=="true" (
+    echo   Kurulum     : TAMAMLANMIS [OK]
+) else (
+    echo   Kurulum     : TAMAMLANMAMIS [!]
+)
+
+:SKIP_DB_DETAIL
+:SKIP_DB
 echo.
 
 :: ============================================================
-:: DOSYA YAPISI KONTROL
+:: PAKET VERSIYONLARI
+:: ============================================================
+echo [DEBUG] ========== PAKET VERSIYONLARI ==========
+
+if not exist node_modules goto :SKIP_PKG
+
+for %%p in (discord.js express pg openai jsonwebtoken bcryptjs) do (
+    for /f "tokens=*" %%v in ('node src/utils/dev-check.js pkg-version %%p 2^>nul') do echo     %%p: v%%v
+)
+
+:SKIP_PKG
+echo.
+
+:: ============================================================
+:: DOSYA YAPISI
 :: ============================================================
 echo [DEBUG] ========== DOSYA YAPISI ==========
 
-set MISSING=0
-for %%f in (
-    src\index.js
-    src\db\index.js
-    src\db\migrations.js
-    src\web\server.js
-    src\bot\client.js
-    src\ai\provider.js
-    src\plugins\loader.js
-    src\langs\tr.json
-    public\index.html
-    public\js\app.js
-    docker-compose.yml
-    Dockerfile
-) do (
+set MISS=0
+for %%f in (src\index.js src\db\index.js src\web\server.js src\bot\client.js src\ai\provider.js src\plugins\loader.js src\langs\tr.json public\index.html docker-compose.yml Dockerfile) do (
     if exist "%%f" (
         echo   [OK] %%f
     ) else (
         echo   [!!] %%f EKSIK
-        set /a MISSING+=1
+        set /a MISS+=1
     )
 )
 
-if !MISSING! gtr 0 (
-    echo   !MISSING! kritik dosya eksik!
+if !MISS! gtr 0 (
+    echo   !MISS! kritik dosya eksik!
 ) else (
-    echo   Tum kritik dosyalar mevcut [OK]
+    echo   Tum dosyalar mevcut [OK]
 )
 
 echo.
@@ -239,26 +180,15 @@ echo.
 :: ============================================================
 echo [DEBUG] ========== LOG DOSYASI ==========
 
+for /f "tokens=*" %%i in ('node src/utils/dev-check.js today 2^>nul') do set "TODAY=%%i"
+if not defined TODAY set "TODAY=unknown"
+
 set "LOG_DIR=%CD%\logs"
-for /f "tokens=1-3 delims=/" %%a in ("%DATE%") do set "TODAY=%%c-%%a-%%b"
-:: Alternatif tarih formati
-for /f "tokens=*" %%i in ('node -e "console.log(new Date().toISOString().slice(0,10))" 2^>nul') do set "TODAY=%%i"
-set "LOG_FILE=%LOG_DIR%\!TODAY!.log"
+set "LOG_FILE=!LOG_DIR!\!TODAY!.log"
 
-if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
+if not exist "!LOG_DIR!" mkdir "!LOG_DIR!"
 
-if exist "%LOG_DIR%" (
-    set LOG_COUNT=0
-    for %%f in ("%LOG_DIR%\*.log") do set /a LOG_COUNT+=1
-    echo   Log dizini  : %LOG_DIR%
-    echo   Dosya sayisi: !LOG_COUNT!
-
-    if exist "!LOG_FILE!" (
-        echo   Bugunun logu: !TODAY!.log [mevcut]
-    ) else (
-        echo   Bugunun logu: !TODAY!.log [yeni olusturulacak]
-    )
-)
+echo   Log dosyasi : logs\!TODAY!.log
 
 echo.
 
@@ -266,8 +196,8 @@ echo.
 :: BASLAT
 :: ============================================================
 echo [DEBUG] ========== BASLATILIYOR ==========
-echo   Node.js --watch modu ^(dosya degisikliklerinde otomatik yeniden baslatir^)
-echo   Durdurmak icin: Ctrl+C
+echo   Watch modu: dosya degisince otomatik yeniden baslar
+echo   Durdurmak: Ctrl+C
 echo.
 echo   Web Panel     : http://localhost:!WEBPORT!
 echo   Log dosyasi   : logs\!TODAY!.log
@@ -275,28 +205,23 @@ echo   Log API       : http://localhost:!WEBPORT!/api/stats/file-logs
 echo   Log Stream    : http://localhost:!WEBPORT!/api/stats/file-logs/stream
 echo.
 
-:: Log tail'i ayri pencerede ac
+:: --tail: ayri pencerede log izle
 if "%1"=="--tail" (
-    echo [*] Log tail ayri pencerede aciliyor...
-    start "FyDCBot Logs" cmd /k "title FyDCBot Logs & color 0A & echo Log izleniyor: !LOG_FILE! & echo. & powershell -Command \"Get-Content '!LOG_FILE!' -Wait -Tail 50\""
+    start "FyDCBot Logs" cmd /k "title FyDCBot Logs & color 0A & echo Log izleniyor... & powershell -Command Get-Content '!LOG_FILE!' -Wait -Tail 50"
 )
 
 echo ===================================================
 echo.
 
-:: DEBUG modunda calistir
 set NODE_ENV=development
 set DEBUG=fydcbot:*
 
-:: Ciktiyi hem ekrana hem log dosyasina yaz
 echo [%DATE% %TIME%] FyDCBot DEV baslatildi >> "!LOG_FILE!"
-
-:: PowerShell tee ile hem ekran hem dosya
 powershell -Command "node --watch src/index.js 2>&1 | Tee-Object -FilePath '!LOG_FILE!' -Append"
 
 if %errorlevel% neq 0 (
     echo.
-    echo [!!] FyDCBot durdu. Hata kodu: %errorlevel%
-    echo [%DATE% %TIME%] FyDCBot DURDU - Hata: %errorlevel% >> "!LOG_FILE!"
+    echo [!!] FyDCBot durdu. Hata: %errorlevel%
+    echo [%DATE% %TIME%] DURDU - Hata: %errorlevel% >> "!LOG_FILE!"
     pause
 )
