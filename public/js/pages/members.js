@@ -6,12 +6,14 @@ async function renderMembers() {
   if (!guildId) { document.querySelector('.main-content').innerHTML = '<div class="alert alert-warning">Lutfen bir sunucu secin</div>'; return; }
 
   try {
-    const [members, roles] = await Promise.all([
+    const [membersRaw, rolesRaw] = await Promise.all([
       API.get(`/api/members/${guildId}`),
       API.get(`/api/roles/${guildId}`)
     ]);
+    const members = Array.isArray(membersRaw) ? membersRaw : [];
+    const roles = Array.isArray(rolesRaw) ? rolesRaw : [];
     const humans = members.filter(m => !m.bot);
-    _allRoles = roles.filter(r => r.name !== '@everyone' && !r.managed);
+    _allRoles = (roles || []).filter(r => r.name !== '@everyone' && !r.managed);
 
     document.querySelector('.main-content').innerHTML = `
       <div class="page-header">
@@ -55,6 +57,42 @@ async function renderMembers() {
         </div>
       </div>
 
+      <!-- Susturma Formu -->
+      <div id="muteForm" style="display:none" class="card">
+        <div class="card-title" style="margin-bottom:14px">Sustur - <span id="muteUsername"></span></div>
+        <input type="hidden" id="muteUserId" />
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Sure</label>
+            <select class="form-select" id="muteDuration">
+              <option value="5">5 dakika</option>
+              <option value="15">15 dakika</option>
+              <option value="30">30 dakika</option>
+              <option value="60" selected>1 saat</option>
+              <option value="360">6 saat</option>
+              <option value="720">12 saat</option>
+              <option value="1440">1 gun</option>
+              <option value="4320">3 gun</option>
+              <option value="10080">1 hafta</option>
+              <option value="40320">28 gun</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sebep</label>
+            <input class="form-input" id="muteReason" placeholder="Kural ihlali..." />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Uyari Mesaji (kullaniciya gosterilir)</label>
+          <textarea class="form-textarea" id="muteMessage" rows="2" placeholder="Susturuldugunuz icin mesaj gonderemezsiniz. Kural ihlali tekrarlanirsa kalici yasaklanabilirsiniz."></textarea>
+          <p class="form-hint">Uye mesaj yazdiginda bu mesaj DM olarak gonderilir, kalan sure ile birlikte</p>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-danger btn-sm" onclick="applyMute()">Sustur</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('muteForm').style.display='none'">${I18n.t('common.cancel')}</button>
+        </div>
+      </div>
+
       <!-- Tablo -->
       <div class="card card-flush">
         <div class="table-wrap" style="max-height:600px;overflow-y:auto">
@@ -67,12 +105,19 @@ async function renderMembers() {
               <th style="text-align:right">${I18n.t('common.actions')}</th>
             </tr></thead>
             <tbody>
-              ${humans.map(m => `
-                <tr>
+              ${humans.map(m => {
+                const isMuted = m.mute && new Date(m.mute.expires_at) > new Date();
+                const muteRemaining = isMuted ? Math.ceil((new Date(m.mute.expires_at).getTime() - Date.now()) / 60000) : 0;
+                const muteStr = muteRemaining >= 60 ? `${Math.floor(muteRemaining/60)}s ${muteRemaining%60}dk` : `${muteRemaining}dk`;
+                return `
+                <tr${isMuted ? ' style="opacity:0.7"' : ''}>
                   <td>
                     <div style="display:flex;align-items:center;gap:10px">
                       <img src="${m.avatar}" class="avatar" alt="" />
-                      <strong>${m.username}</strong>
+                      <div>
+                        <strong>${m.username}</strong>
+                        ${isMuted ? `<div style="font-size:10px;margin-top:2px"><span class="badge badge-danger" style="font-size:9px">SUSTURULDU - ${muteStr} kaldi</span></div>` : ''}
+                      </div>
                     </div>
                   </td>
                   <td style="color:var(--text-muted)">${m.nickname||'-'}</td>
@@ -83,12 +128,16 @@ async function renderMembers() {
                   <td style="text-align:right">
                     <div class="btn-group" style="justify-content:flex-end">
                       <button class="btn btn-secondary btn-xs" onclick="editMember('${m.id}','${m.username.replace(/'/g,"\\'")}','${(m.nickname||'').replace(/'/g,"\\'")}', ${JSON.stringify(m.roles.map(r=>r.id)).replace(/"/g,'&quot;')})">${I18n.t('common.edit')}</button>
+                      ${isMuted
+                        ? `<button class="btn btn-success btn-xs" onclick="unmuteMember('${m.id}')">Susturmayi Ac</button>`
+                        : `<button class="btn btn-secondary btn-xs" onclick="showMuteForm('${m.id}','${m.username.replace(/'/g,"\\'")}')">Sustur</button>`
+                      }
                       <button class="btn btn-danger btn-xs" onclick="kickMember('${m.id}')">${I18n.t('members.kick')}</button>
                       <button class="btn btn-danger btn-xs" onclick="banMember('${m.id}')">${I18n.t('members.ban')}</button>
                     </div>
                   </td>
-                </tr>
-              `).join('')}
+                </tr>`;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -151,6 +200,39 @@ async function applyTimeout() {
   try {
     await API.post(`/api/members/${guildId}/${userId}/timeout`, { minutes, reason });
     showToast(`Uye ${minutes} dakika susturuldu`);
+    renderMembers();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function showMuteForm(userId, username) {
+  document.getElementById('editMemberForm').style.display = 'none';
+  document.getElementById('muteForm').style.display = 'block';
+  document.getElementById('muteUserId').value = userId;
+  document.getElementById('muteUsername').textContent = username;
+  document.getElementById('muteForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function applyMute() {
+  const guildId = localStorage.getItem('selectedGuild');
+  const userId = document.getElementById('muteUserId').value;
+  const minutes = parseInt(document.getElementById('muteDuration').value) || 60;
+  const reason = document.getElementById('muteReason').value;
+  const message = document.getElementById('muteMessage').value;
+
+  try {
+    await API.post(`/api/members/${guildId}/${userId}/mute`, { minutes, reason, message });
+    showToast('Uye susturuldu');
+    document.getElementById('muteForm').style.display = 'none';
+    renderMembers();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function unmuteMember(userId) {
+  if (!confirm('Susturmayi erken kaldirmak istediginize emin misiniz?')) return;
+  const guildId = localStorage.getItem('selectedGuild');
+  try {
+    await API.post(`/api/members/${guildId}/${userId}/unmute`);
+    showToast('Susturma kaldirildi');
     renderMembers();
   } catch(e) { showToast(e.message, 'error'); }
 }

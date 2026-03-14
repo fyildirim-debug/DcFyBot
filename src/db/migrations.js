@@ -137,6 +137,25 @@ const migrations = [
       CREATE INDEX IF NOT EXISTS idx_channel_backups_guild ON channel_backups(guild_id);
       CREATE INDEX IF NOT EXISTS idx_role_backups_guild ON role_backups(guild_id);
     `
+  },
+  {
+    version: 2,
+    name: 'mute_system',
+    up: `
+      CREATE TABLE IF NOT EXISTS mutes (
+        id SERIAL PRIMARY KEY,
+        guild_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        moderator_id TEXT,
+        reason TEXT DEFAULT '',
+        message TEXT DEFAULT '',
+        muted_at TIMESTAMPTZ DEFAULT NOW(),
+        expires_at TIMESTAMPTZ NOT NULL,
+        active BOOLEAN DEFAULT TRUE
+      );
+      CREATE INDEX IF NOT EXISTS idx_mutes_active ON mutes(guild_id, user_id, active);
+      CREATE INDEX IF NOT EXISTS idx_mutes_expires ON mutes(expires_at) WHERE active = TRUE;
+    `
   }
 ];
 

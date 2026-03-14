@@ -6,6 +6,36 @@ module.exports = {
 
   async execute(message) {
     if (message.author.bot) return;
+    if (!message.guild) return;
+
+    // Mute kontrolu - susturulmus uye mesaj yazarsa sil + DM uyari
+    try {
+      const mute = await queryOne(
+        'SELECT reason, message, expires_at FROM mutes WHERE guild_id = $1 AND user_id = $2 AND active = TRUE AND expires_at > NOW()',
+        [message.guildId, message.author.id]
+      );
+      if (mute) {
+        // Mesaji aninda sil
+        try { await message.delete(); } catch {}
+
+        // Kalan sureyi hesapla
+        const remaining = Math.max(0, new Date(mute.expires_at).getTime() - Date.now());
+        const remMin = Math.ceil(remaining / 60000);
+        const remStr = remMin >= 60 ? `${Math.floor(remMin/60)} saat ${remMin%60} dakika` : `${remMin} dakika`;
+
+        // Kullaniciya DM gonder
+        try {
+          await message.author.send(
+            `**${message.guild.name}** sunucusunda susturulmus durumdasiniz.\n` +
+            `**Kalan sure:** ${remStr}\n` +
+            `**Sebep:** ${mute.reason || 'Belirtilmedi'}\n` +
+            (mute.message ? `**Mesaj:** ${mute.message}` : '')
+          );
+        } catch {} // DM kapali olabilir
+
+        return; // Mesaj islenmez
+      }
+    } catch {}
 
     // Mesaj istatistigi
     try {
