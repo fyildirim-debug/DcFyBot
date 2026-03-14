@@ -1,10 +1,13 @@
 // Setup Wizard Page
-function SetupPage() {
-  let step = 1;
-  let data = { language: 'tr', admin: {}, discord: {}, ai: { skip: true } };
+const SetupPage = {
+  _step: 1,
+  _data: { language: 'tr', admin: {}, discord: {}, ai: { skip: true } },
 
-  function render() {
+  render() {
+    const self = SetupPage;
+    const step = self._step;
     const app = document.getElementById('app');
+
     app.innerHTML = `
       <div class="setup-container">
         <div class="setup-card">
@@ -24,49 +27,52 @@ function SetupPage() {
         </div>
       </div>
     `;
-    renderStep();
-  }
 
-  function renderStep() {
+    self._renderStep();
+  },
+
+  _renderStep() {
     const el = document.getElementById('stepContent');
     if (!el) return;
 
-    switch(step) {
-      case 1: el.innerHTML = stepLanguage(); break;
-      case 2: el.innerHTML = stepAdmin(); break;
-      case 3: el.innerHTML = stepDiscord(); break;
-      case 4: el.innerHTML = stepAI(); break;
-      case 5: el.innerHTML = stepComplete(); doSetup(); break;
+    switch(SetupPage._step) {
+      case 1: el.innerHTML = SetupPage._stepLanguage(); break;
+      case 2: el.innerHTML = SetupPage._stepAdmin(); break;
+      case 3: el.innerHTML = SetupPage._stepDiscord(); break;
+      case 4: el.innerHTML = SetupPage._stepAI(); break;
+      case 5: el.innerHTML = SetupPage._stepComplete(); SetupPage._doSetup(); break;
     }
-  }
+  },
 
-  function stepLanguage() {
+  _stepLanguage() {
+    const d = SetupPage._data;
     return `
       <h3 style="margin-bottom:16px">${I18n.t('setup.step1Title')}</h3>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.language')}</label>
-        <select class="form-select" id="setupLang" onchange="SetupPage._setLang(this.value)">
-          <option value="tr" ${data.language==='tr'?'selected':''}>Turkce</option>
-          <option value="en" ${data.language==='en'?'selected':''}>English</option>
+        <select class="form-select" id="setupLang">
+          <option value="tr" ${d.language==='tr'?'selected':''}>Turkce</option>
+          <option value="en" ${d.language==='en'?'selected':''}>English</option>
         </select>
       </div>
       <div class="btn-group" style="margin-top:24px;justify-content:flex-end">
         <button class="btn btn-primary" onclick="SetupPage._next()">${I18n.t('common.next')}</button>
       </div>
     `;
-  }
+  },
 
-  function stepAdmin() {
+  _stepAdmin() {
+    const d = SetupPage._data;
     return `
       <h3 style="margin-bottom:16px">${I18n.t('setup.step2Title')}</h3>
       <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">${I18n.t('setup.step2Desc')}</p>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.adminUsername')}</label>
-        <input class="form-input" id="adminUser" value="${data.admin.username||'admin'}" />
+        <input class="form-input" id="adminUser" value="${d.admin.username||'admin'}" />
       </div>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.adminPassword')}</label>
-        <input class="form-input" type="password" id="adminPass" value="${data.admin.password||''}" />
+        <input class="form-input" type="password" id="adminPass" value="${d.admin.password||''}" />
       </div>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.adminPasswordConfirm')}</label>
@@ -78,20 +84,21 @@ function SetupPage() {
         <button class="btn btn-primary" onclick="SetupPage._saveAdmin()">${I18n.t('common.next')}</button>
       </div>
     `;
-  }
+  },
 
-  function stepDiscord() {
+  _stepDiscord() {
+    const d = SetupPage._data;
     return `
       <h3 style="margin-bottom:16px">${I18n.t('setup.step3Title')}</h3>
       <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">${I18n.t('setup.step3Desc')}</p>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.discordToken')}</label>
-        <input class="form-input" id="discordToken" type="password" value="${data.discord.token||''}" />
+        <input class="form-input" id="discordToken" type="password" value="${d.discord.token||''}" />
         <p class="form-hint">${I18n.t('setup.discordTokenHelp')}</p>
       </div>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.discordClientId')}</label>
-        <input class="form-input" id="discordClientId" value="${data.discord.clientId||''}" />
+        <input class="form-input" id="discordClientId" value="${d.discord.clientId||''}" />
         <p class="form-hint">${I18n.t('setup.discordClientIdHelp')}</p>
       </div>
       <div class="btn-group" style="margin-top:24px;justify-content:space-between">
@@ -99,19 +106,20 @@ function SetupPage() {
         <button class="btn btn-primary" onclick="SetupPage._saveDiscord()">${I18n.t('common.next')}</button>
       </div>
     `;
-  }
+  },
 
-  function stepAI() {
+  _stepAI() {
+    const d = SetupPage._data;
     return `
       <h3 style="margin-bottom:16px">${I18n.t('setup.step4Title')}</h3>
       <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">${I18n.t('setup.step4Desc')}</p>
 
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <span>${I18n.t('ai.enabled')}</span>
-        <button class="toggle ${!data.ai.skip?'active':''}" onclick="SetupPage._toggleAI()"></button>
+        <button class="toggle ${!d.ai.skip?'active':''}" onclick="SetupPage._toggleAI()"></button>
       </div>
 
-      <div id="aiFields" style="display:${data.ai.skip?'none':'block'}">
+      <div id="aiFields" style="display:${d.ai.skip?'none':'block'}">
         <div class="form-group">
           <label class="form-label">${I18n.t('ai.provider')}</label>
           <select class="form-select" id="aiProvider">
@@ -139,9 +147,9 @@ function SetupPage() {
         <button class="btn btn-primary" onclick="SetupPage._saveAI()">${I18n.t('common.next')}</button>
       </div>
     `;
-  }
+  },
 
-  function stepComplete() {
+  _stepComplete() {
     return `
       <div style="text-align:center;padding:20px 0">
         <div style="font-size:48px;margin-bottom:16px">&#10003;</div>
@@ -150,75 +158,86 @@ function SetupPage() {
         <div class="spinner" style="margin:24px auto"></div>
       </div>
     `;
-  }
+  },
 
-  async function doSetup() {
+  async _doSetup() {
     try {
-      const res = await API.post('/api/setup/complete', data);
+      const res = await API.post('/api/setup/complete', SetupPage._data);
       if (res.token) {
         localStorage.setItem('token', res.token);
         setTimeout(() => Router.navigate('/dashboard'), 2000);
       } else {
         alert(res.error || 'Kurulum hatasi');
-        step = 1; render();
+        SetupPage._step = 1;
+        SetupPage.render();
       }
     } catch (e) {
       alert('Kurulum hatasi: ' + e.message);
-      step = 1; render();
+      SetupPage._step = 1;
+      SetupPage.render();
     }
-  }
+  },
 
-  // Public methods
-  return {
-    render,
-    _next() { step++; render(); },
-    _prev() { step--; render(); },
-    async _setLang(lang) {
-      data.language = lang;
-      await I18n.load(lang);
-      I18n.setLang(lang);
-      render();
-    },
-    _saveAdmin() {
-      const u = document.getElementById('adminUser')?.value;
-      const p = document.getElementById('adminPass')?.value;
-      const p2 = document.getElementById('adminPass2')?.value;
-      if (!u || !p) return;
-      if (p !== p2) {
-        const err = document.getElementById('adminError');
-        if (err) { err.style.display = 'block'; err.textContent = I18n.t('setup.passwordMismatch'); }
-        return;
+  async _next() {
+    // Dil adiminda dil degisikligini uygula
+    if (SetupPage._step === 1) {
+      const lang = document.getElementById('setupLang')?.value || 'tr';
+      if (lang !== SetupPage._data.language) {
+        SetupPage._data.language = lang;
+        await I18n.load(lang);
+        I18n.setLang(lang);
       }
-      data.admin = { username: u, password: p };
-      step++; render();
-    },
-    _saveDiscord() {
-      data.discord = {
-        token: document.getElementById('discordToken')?.value || '',
-        clientId: document.getElementById('discordClientId')?.value || ''
+    }
+    SetupPage._step++;
+    SetupPage.render();
+  },
+
+  _prev() {
+    SetupPage._step--;
+    SetupPage.render();
+  },
+
+  _saveAdmin() {
+    const u = document.getElementById('adminUser')?.value;
+    const p = document.getElementById('adminPass')?.value;
+    const p2 = document.getElementById('adminPass2')?.value;
+    if (!u || !p) return;
+    if (p !== p2) {
+      const err = document.getElementById('adminError');
+      if (err) { err.style.display = 'block'; err.textContent = I18n.t('setup.passwordMismatch'); }
+      return;
+    }
+    SetupPage._data.admin = { username: u, password: p };
+    SetupPage._step++;
+    SetupPage.render();
+  },
+
+  _saveDiscord() {
+    SetupPage._data.discord = {
+      token: document.getElementById('discordToken')?.value || '',
+      clientId: document.getElementById('discordClientId')?.value || ''
+    };
+    SetupPage._step++;
+    SetupPage.render();
+  },
+
+  _toggleAI() {
+    SetupPage._data.ai.skip = !SetupPage._data.ai.skip;
+    SetupPage._renderStep();
+  },
+
+  _saveAI() {
+    if (!SetupPage._data.ai.skip) {
+      SetupPage._data.ai = {
+        skip: false,
+        enabled: true,
+        provider: document.getElementById('aiProvider')?.value || 'anthropic',
+        baseUrl: document.getElementById('aiBaseUrl')?.value || '',
+        apiKey: document.getElementById('aiApiKey')?.value || '',
+        model: document.getElementById('aiModel')?.value || ''
       };
-      step++; render();
-    },
-    _toggleAI() {
-      data.ai.skip = !data.ai.skip;
-      render(); // Re-render step 4
-      step = 4; renderStep();
-    },
-    _saveAI() {
-      if (!data.ai.skip) {
-        data.ai = {
-          skip: false,
-          enabled: true,
-          provider: document.getElementById('aiProvider')?.value || 'anthropic',
-          baseUrl: document.getElementById('aiBaseUrl')?.value || '',
-          apiKey: document.getElementById('aiApiKey')?.value || '',
-          model: document.getElementById('aiModel')?.value || ''
-        };
-      }
-      step++; render();
     }
-  };
-}
-
-// Singleton
-const SetupPage = new (function() { Object.assign(this, SetupPage()); })();
+    SetupPage._step++;
+    SetupPage.render();
+  }
+};
