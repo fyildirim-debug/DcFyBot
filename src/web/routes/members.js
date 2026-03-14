@@ -19,18 +19,32 @@ router.get('/:guildId', requireAuth, async (req, res) => {
     const guild = getGuild(req.params.guildId);
     if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
 
-    // Uyeleri getir (cache + fetch)
-    await guild.members.fetch();
+    // Uyeleri getir - timeout ile guvenli fetch
+    try {
+      await guild.members.fetch({ time: 30000 });
+    } catch (fetchErr) {
+      logger.warn('web', `Uye fetch kismi basarisiz, cache kullaniliyor: ${fetchErr.message}`);
+      // Cache'te hic yoksa bos liste yerine hata
+      if (guild.members.cache.size <= 1) {
+        // Tekrar dene, daha kucuk limit ile
+        try {
+          await guild.members.fetch({ limit: 100, time: 15000 });
+        } catch {}
+      }
+    }
 
     // Aktif mute'lari cek
-    const activeMutes = await query(
-      'SELECT user_id, reason, message, muted_at, expires_at FROM mutes WHERE guild_id = $1 AND active = TRUE AND expires_at > NOW()',
-      [req.params.guildId]
-    );
-    const muteMap = {};
-    for (const m of (activeMutes?.rows || activeMutes || [])) {
-      muteMap[m.user_id] = m;
-    }
+    let muteMap = {};
+    try {
+      const activeMutes = await query(
+        'SELECT user_id, reason, message, muted_at, expires_at FROM mutes WHERE guild_id = $1 AND active = TRUE AND expires_at > NOW()',
+        [req.params.guildId]
+      );
+      const muteRows = Array.isArray(activeMutes) ? activeMutes : (activeMutes?.rows || []);
+      for (const m of muteRows) {
+        muteMap[m.user_id] = m;
+      }
+    } catch {}
 
     const members = [...guild.members.cache.values()].map(m => ({
       id: m.id,
