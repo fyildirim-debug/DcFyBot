@@ -77,5 +77,67 @@ router.delete('/logs', requireAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+// ========== DOSYA LOGLARI ==========
+
+// GET /api/stats/file-logs - Dosya log'unu oku (tail)
+router.get('/file-logs', requireAuth, (req, res) => {
+  const logger = require('../../utils/logger');
+  const lines = parseInt(req.query.lines) || 200;
+  const content = logger.tailLog(lines);
+  res.json({ path: logger.getLogFilePath(), content });
+});
+
+// GET /api/stats/file-logs/list - Log dosyalarini listele
+router.get('/file-logs/list', requireAuth, (req, res) => {
+  const logger = require('../../utils/logger');
+  res.json(logger.listLogFiles());
+});
+
+// GET /api/stats/file-logs/stream - SSE ile canli log stream
+router.get('/file-logs/stream', requireAuth, (req, res) => {
+  const fs = require('fs');
+  const logger = require('../../utils/logger');
+  const logPath = logger.getLogFilePath();
+
+  if (!logPath || !fs.existsSync(logPath)) {
+    return res.status(404).json({ error: 'Log dosyasi bulunamadi' });
+  }
+
+  // SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+
+  // Son 50 satiri hemen gonder
+  const initial = logger.tailLog(50);
+  res.write(`data: ${JSON.stringify({ type: 'init', content: initial })}\n\n`);
+
+  // Dosya degisikligini izle
+  let lastSize = fs.statSync(logPath).size;
+
+  const watcher = setInterval(() => {
+    try {
+      const stat = fs.statSync(logPath);
+      if (stat.size > lastSize) {
+        const fd = fs.openSync(logPath, 'r');
+        const buf = Buffer.alloc(stat.size - lastSize);
+        fs.readSync(fd, buf, 0, buf.length, lastSize);
+        fs.closeSync(fd);
+        const newContent = buf.toString('utf-8');
+        if (newContent.trim()) {
+          res.write(`data: ${JSON.stringify({ type: 'append', content: newContent })}\n\n`);
+        }
+        lastSize = stat.size;
+      }
+    } catch {}
+  }, 1000);
+
+  req.on('close', () => {
+    clearInterval(watcher);
+  });
+});
+
 module.exports = router;
 module.exports.setBotClient = setBotClient;

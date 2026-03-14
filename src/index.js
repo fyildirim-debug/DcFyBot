@@ -8,6 +8,15 @@ const { loadPlugins, startPlugins } = require('./plugins/loader');
 const config = require('./config');
 const logger = require('./utils/logger');
 
+// Dosya log'u baslat + stderr yakala
+logger.initFileLog();
+logger.captureStdErr();
+
+// Dev modunda debug seviyesini ac
+if (process.env.NODE_ENV === 'development') {
+  logger.setLevel('debug');
+}
+
 const PORT = process.env.PORT || 3000;
 
 async function main() {

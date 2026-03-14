@@ -235,14 +235,52 @@ if !MISSING! gtr 0 (
 echo.
 
 :: ============================================================
+:: LOG DOSYASI
+:: ============================================================
+echo [DEBUG] ========== LOG DOSYASI ==========
+
+set "LOG_DIR=%CD%\logs"
+for /f "tokens=1-3 delims=/" %%a in ("%DATE%") do set "TODAY=%%c-%%a-%%b"
+:: Alternatif tarih formati
+for /f "tokens=*" %%i in ('node -e "console.log(new Date().toISOString().slice(0,10))" 2^>nul') do set "TODAY=%%i"
+set "LOG_FILE=%LOG_DIR%\!TODAY!.log"
+
+if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
+
+if exist "%LOG_DIR%" (
+    set LOG_COUNT=0
+    for %%f in ("%LOG_DIR%\*.log") do set /a LOG_COUNT+=1
+    echo   Log dizini  : %LOG_DIR%
+    echo   Dosya sayisi: !LOG_COUNT!
+
+    if exist "!LOG_FILE!" (
+        echo   Bugunun logu: !TODAY!.log [mevcut]
+    ) else (
+        echo   Bugunun logu: !TODAY!.log [yeni olusturulacak]
+    )
+)
+
+echo.
+
+:: ============================================================
 :: BASLAT
 :: ============================================================
 echo [DEBUG] ========== BASLATILIYOR ==========
 echo   Node.js --watch modu ^(dosya degisikliklerinde otomatik yeniden baslatir^)
 echo   Durdurmak icin: Ctrl+C
 echo.
-echo   Web Panel: http://localhost:!WEBPORT!
+echo   Web Panel     : http://localhost:!WEBPORT!
+echo   Log dosyasi   : logs\!TODAY!.log
+echo   Log API       : http://localhost:!WEBPORT!/api/stats/file-logs
+echo   Log Stream    : http://localhost:!WEBPORT!/api/stats/file-logs/stream
 echo.
+
+:: Log tail'i ayri pencerede ac
+if "%1"=="--tail" (
+    echo [*] Log tail ayri pencerede aciliyor...
+    start "FyDCBot Logs" cmd /k "title FyDCBot Logs & color 0A & echo Log izleniyor: !LOG_FILE! & echo. & powershell -Command \"Get-Content '!LOG_FILE!' -Wait -Tail 50\""
+)
+
 echo ===================================================
 echo.
 
@@ -250,10 +288,15 @@ echo.
 set NODE_ENV=development
 set DEBUG=fydcbot:*
 
-node --watch src/index.js
+:: Ciktiyi hem ekrana hem log dosyasina yaz
+echo [%DATE% %TIME%] FyDCBot DEV baslatildi >> "!LOG_FILE!"
+
+:: PowerShell tee ile hem ekran hem dosya
+powershell -Command "node --watch src/index.js 2>&1 | Tee-Object -FilePath '!LOG_FILE!' -Append"
 
 if %errorlevel% neq 0 (
     echo.
     echo [!!] FyDCBot durdu. Hata kodu: %errorlevel%
+    echo [%DATE% %TIME%] FyDCBot DURDU - Hata: %errorlevel% >> "!LOG_FILE!"
     pause
 )

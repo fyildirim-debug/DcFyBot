@@ -1,7 +1,50 @@
+const fs = require('fs');
+const path = require('path');
 const { query } = require('../db');
 
 const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
 let minLevel = 'info';
+let fileStream = null;
+let logFilePath = null;
+
+// Log dosyasini baslat
+function initFileLog() {
+  if (fileStream) return;
+
+  const logsDir = path.join(__dirname, '..', '..', 'logs');
+  if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+
+  // Tarihli dosya adi: logs/2026-03-14.log
+  const date = new Date().toISOString().slice(0, 10);
+  logFilePath = path.join(logsDir, `${date}.log`);
+
+  fileStream = fs.createWriteStream(logFilePath, { flags: 'a' });
+
+  // Baslangic ayirici
+  const sep = `\n${'='.repeat(80)}\n[${new Date().toISOString()}] FyDCBot BASLADI - PID: ${process.pid}\nNode: ${process.version} | Platform: ${process.platform} ${process.arch}\nCWD: ${process.cwd()}\n${'='.repeat(80)}\n`;
+  fileStream.write(sep);
+
+  // Yakalanmamis hatalari dosyaya yaz
+  process.on('uncaughtException', (err) => {
+    const msg = formatFull('error', 'UNCAUGHT', `${err.message}\n${err.stack}`);
+    if (fileStream) fileStream.write(msg + '\n');
+    console.error(msg);
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    const msg = formatFull('error', 'UNHANDLED', `${reason?.message || reason}\n${reason?.stack || ''}`);
+    if (fileStream) fileStream.write(msg + '\n');
+    console.error(msg);
+  });
+
+  // Kapanirken kapat
+  process.on('exit', () => {
+    if (fileStream) {
+      fileStream.write(`\n[${new Date().toISOString()}] FyDCBot KAPANDI\n`);
+      fileStream.end();
+    }
+  });
+}
 
 function setLevel(level) {
   if (level in LOG_LEVELS) minLevel = level;
@@ -11,23 +54,45 @@ function shouldLog(level) {
   return (LOG_LEVELS[level] || 0) >= (LOG_LEVELS[minLevel] || 0);
 }
 
-function formatMessage(level, source, message) {
+// Konsol formati: kisa
+function formatShort(level, source, message) {
   const time = new Date().toISOString().substring(11, 19);
   const tag = level.toUpperCase().padEnd(5);
   return `[${time}] [${tag}] [${source}] ${message}`;
 }
 
-// Konsola yaz + DB'ye kaydet
+// Dosya formati: detayli
+function formatFull(level, source, message, extra = {}) {
+  const ts = new Date().toISOString();
+  const tag = level.toUpperCase().padEnd(5);
+  const mem = process.memoryUsage();
+  const memMB = Math.round(mem.rss / 1024 / 1024);
+  let line = `[${ts}] [${tag}] [${source}] ${message} (mem:${memMB}MB)`;
+
+  if (extra.guildId) line += ` guild:${extra.guildId}`;
+  if (extra.userId) line += ` user:${extra.userId}`;
+  if (extra.metadata) line += ` meta:${JSON.stringify(extra.metadata)}`;
+
+  return line;
+}
+
+// Konsola yaz + dosyaya yaz + DB'ye kaydet
 async function log(level, source, message, extra = {}) {
   if (!shouldLog(level)) return;
 
-  // Konsol
-  const formatted = formatMessage(level, source, message);
-  if (level === 'error') console.error(formatted);
-  else if (level === 'warn') console.warn(formatted);
-  else console.log(formatted);
+  // Konsol (kisa format)
+  const short = formatShort(level, source, message);
+  if (level === 'error') console.error(short);
+  else if (level === 'warn') console.warn(short);
+  else console.log(short);
 
-  // DB'ye kaydet (hata olursa sessizce gec - db hazir olmayabilir)
+  // Dosyaya yaz (detayli format)
+  if (fileStream) {
+    const full = formatFull(level, source, message, extra);
+    fileStream.write(full + '\n');
+  }
+
+  // DB'ye kaydet
   try {
     await query(
       'INSERT INTO logs (level, source, message, guild_id, user_id, metadata) VALUES ($1, $2, $3, $4, $5, $6)',
@@ -38,10 +103,52 @@ async function log(level, source, message, extra = {}) {
   }
 }
 
+// npm/express hata ciktisini yakala
+function captureStdErr() {
+  const origStderrWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = (chunk, encoding, cb) => {
+    // Orijinal stderr'e yaz
+    origStderrWrite(chunk, encoding, cb);
+    // Dosyaya da yaz
+    if (fileStream) {
+      const ts = new Date().toISOString();
+      const text = typeof chunk === 'string' ? chunk : chunk.toString();
+      if (text.trim()) {
+        fileStream.write(`[${ts}] [STDERR] ${text}`);
+        if (!text.endsWith('\n')) fileStream.write('\n');
+      }
+    }
+  };
+}
+
 // Kisayollar
 const info = (source, msg, extra) => log('info', source, msg, extra);
 const warn = (source, msg, extra) => log('warn', source, msg, extra);
 const error = (source, msg, extra) => log('error', source, msg, extra);
 const debug = (source, msg, extra) => log('debug', source, msg, extra);
 
-module.exports = { log, info, warn, error, debug, setLevel };
+// Log dosya yolunu getir
+function getLogFilePath() { return logFilePath; }
+
+// Son N satiri oku (tail)
+function tailLog(lines = 100) {
+  if (!logFilePath || !fs.existsSync(logFilePath)) return '';
+  const content = fs.readFileSync(logFilePath, 'utf-8');
+  const allLines = content.split('\n');
+  return allLines.slice(-lines).join('\n');
+}
+
+// Tum log dosyalarini listele
+function listLogFiles() {
+  const logsDir = path.join(__dirname, '..', '..', 'logs');
+  if (!fs.existsSync(logsDir)) return [];
+  return fs.readdirSync(logsDir)
+    .filter(f => f.endsWith('.log'))
+    .map(f => {
+      const stat = fs.statSync(path.join(logsDir, f));
+      return { name: f, size: stat.size, modified: stat.mtime };
+    })
+    .sort((a, b) => b.modified - a.modified);
+}
+
+module.exports = { log, info, warn, error, debug, setLevel, initFileLog, captureStdErr, getLogFilePath, tailLog, listLogFiles };

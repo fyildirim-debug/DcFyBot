@@ -303,13 +303,44 @@ echo -e "${GRAY}  Toplam      : $TOTAL_FILES dosya, $TOTAL_LINES satir${NC}"
 echo ""
 
 # ============================================================
+# LOG DOSYASI
+# ============================================================
+echo -e "${CYAN}[DEBUG] ========== LOG DOSYASI ==========${NC}"
+
+LOG_DIR="$(pwd)/logs"
+TODAY=$(date '+%Y-%m-%d')
+LOG_FILE="$LOG_DIR/$TODAY.log"
+
+if [ -d "$LOG_DIR" ]; then
+    LOG_COUNT=$(ls "$LOG_DIR"/*.log 2>/dev/null | wc -l | tr -d ' ')
+    TOTAL_SIZE=$(du -sh "$LOG_DIR" 2>/dev/null | cut -f1)
+    echo -e "${GRAY}  Log dizini  : $LOG_DIR${NC}"
+    echo -e "${GRAY}  Dosya sayisi: $LOG_COUNT${NC}"
+    echo -e "${GRAY}  Toplam boyut: $TOTAL_SIZE${NC}"
+
+    if [ -f "$LOG_FILE" ]; then
+        FSIZE=$(wc -c < "$LOG_FILE" | tr -d ' ')
+        FLINES=$(wc -l < "$LOG_FILE" | tr -d ' ')
+        echo -e "${GREEN}  Bugunun logu: $TODAY.log (${FSIZE}b, ${FLINES} satir)${NC}"
+    fi
+else
+    echo -e "${GRAY}  Log dizini henuz olusturulmadi (ilk calistirmada olusur)${NC}"
+fi
+
+echo ""
+
+# ============================================================
 # BASLAT
 # ============================================================
 echo -e "${CYAN}[DEBUG] ========== BASLATILIYOR ==========${NC}"
 echo -e "${YELLOW}  Node.js --watch modu (dosya degisikliklerinde otomatik yeniden baslatir)${NC}"
 echo -e "${GRAY}  Durdurmak icin: Ctrl+C${NC}"
 echo ""
-echo -e "${GREEN}  Web Panel: http://localhost:${PORT_VAL:-3000}${NC}"
+echo -e "${GREEN}  Web Panel     : http://localhost:${PORT_VAL:-3000}${NC}"
+echo -e "${GREEN}  Log dosyasi   : logs/$TODAY.log${NC}"
+echo -e "${GREEN}  Canli log     : tail -f logs/$TODAY.log${NC}"
+echo -e "${GREEN}  Log API       : http://localhost:${PORT_VAL:-3000}/api/stats/file-logs${NC}"
+echo -e "${GREEN}  Log Stream    : http://localhost:${PORT_VAL:-3000}/api/stats/file-logs/stream${NC}"
 echo ""
 echo -e "${CYAN}═══════════════════════════════════════════${NC}"
 echo ""
@@ -318,4 +349,19 @@ echo ""
 export NODE_ENV=development
 export DEBUG=fydcbot:*
 
-node --watch src/index.js
+# Ayri terminal'de tail calistir (opsiyonel)
+if [ "$1" = "--tail" ]; then
+    echo -e "${YELLOW}[*] Log tail ayri pencerede aciliyor...${NC}"
+    mkdir -p logs
+    touch "logs/$TODAY.log"
+
+    if command -v gnome-terminal &> /dev/null; then
+        gnome-terminal -- bash -c "tail -f logs/$TODAY.log; exec bash"
+    elif command -v xterm &> /dev/null; then
+        xterm -e "tail -f logs/$TODAY.log" &
+    elif [ "$(uname)" = "Darwin" ]; then
+        osascript -e "tell application \"Terminal\" to do script \"cd $(pwd) && tail -f logs/$TODAY.log\""
+    fi
+fi
+
+node --watch src/index.js 2>&1 | tee -a "logs/$TODAY.log"
