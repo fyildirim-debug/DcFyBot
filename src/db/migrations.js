@@ -156,6 +156,24 @@ const migrations = [
       CREATE INDEX IF NOT EXISTS idx_mutes_active ON mutes(guild_id, user_id, active);
       CREATE INDEX IF NOT EXISTS idx_mutes_expires ON mutes(expires_at) WHERE active = TRUE;
     `
+  },
+  {
+    version: 3,
+    name: 'word_filter',
+    up: `
+      CREATE TABLE IF NOT EXISTS word_filters (
+        id SERIAL PRIMARY KEY,
+        guild_id TEXT NOT NULL,
+        word TEXT NOT NULL,
+        match_type TEXT DEFAULT 'contains',
+        action TEXT DEFAULT 'delete',
+        action_duration INTEGER DEFAULT 0,
+        warn_message TEXT DEFAULT '',
+        enabled BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_word_filters_guild ON word_filters(guild_id, enabled);
+    `
   }
 ];
 

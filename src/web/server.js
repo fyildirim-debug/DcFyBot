@@ -38,6 +38,7 @@ function createServer() {
   app.use('/api/members', require('./routes/members'));
   app.use('/api/roles', require('./routes/roles'));
   app.use('/api/messages', require('./routes/messages'));
+  app.use('/api/wordfilter', require('./routes/wordfilter'));
   app.use('/api/backup', require('./routes/backup'));
 
   // Versiyon endpoint
