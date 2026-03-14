@@ -90,6 +90,7 @@
     "api": "API",
     "system": "Sistem",
     "messages": "Mesajlar",
+    "serverSettings": "Sunucu Detaylari",
     "aiSetup": "AI Sunucu Kur"
   },
   "dashboard": {

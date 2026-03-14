@@ -32,6 +32,7 @@ const App = {
     Router.register('/plugins', () => renderPlugins());
     Router.register('/backup', () => renderBackup());
     Router.register('/logs', () => renderLogs());
+    Router.register('/server-settings', () => renderServerSettings());
     Router.register('/ai-setup', () => renderAISetup());
     Router.register('/system', () => renderSystem());
 
@@ -135,10 +136,16 @@ const App = {
     } catch (e) { console.warn('Sunucu listesi yuklenemedi:', e); }
   },
 
-  selectGuild(guildId) {
+  selectGuild(guildId, reload = false) {
+    const prev = localStorage.getItem('selectedGuild');
     localStorage.setItem('selectedGuild', guildId);
     const select = document.getElementById('guildSelect');
     if (select) select.value = guildId;
+
+    // Sunucu degistiyse mevcut sayfayi yeniden yukle
+    if (reload || (prev && prev !== guildId && guildId)) {
+      Router._resolve();
+    }
   },
 
   async inviteBot() {

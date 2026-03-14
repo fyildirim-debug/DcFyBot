@@ -30,6 +30,142 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/guilds/:guildId/details - Sunucu detaylari
+router.get('/:guildId/details', requireAuth, async (req, res) => {
+  try {
+    if (!botClient?.isReady()) return res.status(400).json({ error: 'Bot cevrimdisi' });
+    const guild = botClient.guilds.cache.get(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    // Davet linkleri
+    let invites = [];
+    try {
+      const inv = await guild.invites.fetch();
+      invites = inv.map(i => ({
+        code: i.code,
+        url: `https://discord.gg/${i.code}`,
+        uses: i.uses,
+        maxUses: i.maxUses,
+        temporary: i.temporary,
+        expiresAt: i.expiresAt,
+        inviter: i.inviter?.username || 'Bilinmiyor'
+      }));
+    } catch {}
+
+    const botMember = guild.members.me;
+
+    res.json({
+      id: guild.id,
+      name: guild.name,
+      icon: guild.iconURL({ size: 256, dynamic: true }),
+      banner: guild.bannerURL({ size: 512 }),
+      description: guild.description,
+      memberCount: guild.memberCount,
+      channelCount: guild.channels.cache.size,
+      roleCount: guild.roles.cache.size,
+      emojiCount: guild.emojis.cache.size,
+      boostCount: guild.premiumSubscriptionCount || 0,
+      boostTier: guild.premiumTier,
+      ownerId: guild.ownerId,
+      ownerName: guild.members.cache.get(guild.ownerId)?.user?.username || 'Bilinmiyor',
+      verificationLevel: guild.verificationLevel,
+      createdAt: guild.createdAt,
+      features: guild.features,
+      invites,
+      bot: {
+        id: botMember?.id,
+        username: botMember?.user?.username,
+        displayName: botMember?.displayName,
+        avatar: botMember?.user?.displayAvatarURL({ size: 128 }),
+        nickname: botMember?.nickname,
+        joinedAt: botMember?.joinedAt,
+        roles: botMember?.roles.cache.filter(r => r.id !== guild.id).map(r => ({ name: r.name, color: r.hexColor })) || []
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/guilds/:guildId/settings - Sunucu ayarlarini duzenlE
+router.put('/:guildId/settings', requireAuth, async (req, res) => {
+  try {
+    if (!botClient?.isReady()) return res.status(400).json({ error: 'Bot cevrimdisi' });
+    const guild = botClient.guilds.cache.get(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    const { name, description, verificationLevel, botNickname } = req.body;
+    const logger = require('../../utils/logger');
+
+    // Sunucu ayarlari
+    const updates = {};
+    if (name && name !== guild.name) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    if (verificationLevel !== undefined) updates.verificationLevel = verificationLevel;
+
+    if (Object.keys(updates).length > 0) {
+      await guild.edit(updates);
+      logger.info('web', `Sunucu ayarlari guncellendi: ${guild.name}`, { guildId: guild.id });
+    }
+
+    // Bot nickname
+    if (botNickname !== undefined) {
+      try {
+        const botMember = guild.members.me;
+        await botMember.setNickname(botNickname || null);
+        logger.info('web', `Bot nickname guncellendi: ${botNickname || '(kaldirildi)'}`, { guildId: guild.id });
+      } catch (e) {
+        return res.json({ success: true, warning: 'Sunucu guncellendi ama bot nickname degistirilemedi: ' + e.message });
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/guilds/:guildId/invite/create - Davet linki olustur
+router.post('/:guildId/invite/create', requireAuth, async (req, res) => {
+  try {
+    if (!botClient?.isReady()) return res.status(400).json({ error: 'Bot cevrimdisi' });
+    const guild = botClient.guilds.cache.get(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    const { channelId, maxAge, maxUses, temporary } = req.body;
+    const channel = channelId ? guild.channels.cache.get(channelId) : guild.channels.cache.find(c => c.type === 0);
+    if (!channel) return res.status(400).json({ error: 'Kanal bulunamadi' });
+
+    const invite = await channel.createInvite({
+      maxAge: maxAge || 86400, // 24 saat
+      maxUses: maxUses || 0, // sinirsiz
+      temporary: temporary || false
+    });
+
+    res.json({ code: invite.code, url: `https://discord.gg/${invite.code}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/guilds/:guildId/invite/:code - Davet linki sil
+router.delete('/:guildId/invite/:code', requireAuth, async (req, res) => {
+  try {
+    if (!botClient?.isReady()) return res.status(400).json({ error: 'Bot cevrimdisi' });
+    const guild = botClient.guilds.cache.get(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    const invite = await guild.invites.fetch();
+    const target = invite.find(i => i.code === req.params.code);
+    if (!target) return res.status(404).json({ error: 'Davet bulunamadi' });
+
+    await target.delete();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/guilds/:guildId/ai-setup - AI ile sunucu yapisi kur (roller + kanallar + izinler)
 router.post('/:guildId/ai-setup', requireAuth, async (req, res) => {
   try {

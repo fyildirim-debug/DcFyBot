@@ -82,7 +82,7 @@ function renderLayout(content, activePage) {
         </div>
 
         <div class="server-selector">
-          <select id="guildSelect" class="form-select" onchange="App.selectGuild(this.value)">
+          <select id="guildSelect" class="form-select" onchange="App.selectGuild(this.value, true)">
             <option value="">Sunucu sec...</option>
           </select>
           <button class="btn btn-ghost btn-xs" onclick="App.inviteBot()" style="width:100%;margin-top:6px;justify-content:center;font-size:11px;color:var(--accent)">+ Sunucuya Ekle</button>
@@ -98,6 +98,7 @@ function renderLayout(content, activePage) {
           ${navItem('/roles', 'roles', 'shield', activePage)}
 
           <div class="nav-section"><span class="nav-section-label">Sunucu Ayarlari</span></div>
+          ${navItem('/server-settings', 'serverSettings', 'server', activePage)}
           ${navItem('/ai-setup', 'aiSetup', 'cpu', activePage)}
 
           <div class="nav-section"><span class="nav-section-label">${I18n.t('common.settings') || 'Ayarlar'}</span></div>

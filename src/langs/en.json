@@ -90,6 +90,7 @@
     "api": "API",
     "system": "System",
     "messages": "Messages",
+    "serverSettings": "Server Details",
     "aiSetup": "AI Server Setup"
   },
   "dashboard": {
