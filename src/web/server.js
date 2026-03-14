@@ -40,6 +40,14 @@ function createServer() {
   app.use('/api/messages', require('./routes/messages'));
   app.use('/api/backup', require('./routes/backup'));
 
+  // Versiyon endpoint
+  app.get('/api/version', (req, res) => {
+    try {
+      const v = require('../../.fy/version.json');
+      res.json({ version: v.version });
+    } catch { res.json({ version: '1.2.0.0' }); }
+  });
+
   // Plugin web registry endpoint
   app.get('/api/plugins/registry', (req, res) => {
     try {

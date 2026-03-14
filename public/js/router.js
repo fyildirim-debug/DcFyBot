@@ -77,7 +77,7 @@ function renderLayout(content, activePage) {
           </div>
           <div class="sidebar-title">
             <h1>DcFyBot</h1>
-            <p>v1.0.5</p>
+            <p>${window._appVersion || 'v1.2.0'}</p>
           </div>
         </div>
 

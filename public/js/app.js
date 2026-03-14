@@ -13,6 +13,12 @@ const App = {
       console.error('Dil yuklenemedi:', e);
     }
 
+    // Versiyon yukle
+    try {
+      const v = await fetch('/api/version').then(r => r.json());
+      window._appVersion = 'v' + v.version;
+    } catch { window._appVersion = 'v1.2.0'; }
+
     // Core route'lari kaydet
     Router.register('/setup', () => SetupPage.render());
     Router.register('/login', () => renderLoginPage());
