@@ -133,6 +133,24 @@ const App = {
       } else if (!selectedGuild && guilds.length > 0) {
         this.selectGuild(guilds[0].id);
       }
+
+      // Sidebar logosunu guncelle (sunucu ikonu)
+      const currentGuild = guilds.find(g => g.id === (activeGuild || selectedGuild));
+      if (currentGuild) {
+        const headerEl = document.querySelector('.sidebar-header');
+        if (headerEl) {
+          const logoEl = headerEl.querySelector('img, .sidebar-logo');
+          const titleEl = headerEl.querySelector('.sidebar-title h1');
+          if (titleEl) titleEl.textContent = currentGuild.name;
+          if (currentGuild.icon && logoEl) {
+            if (logoEl.tagName === 'IMG') {
+              logoEl.src = currentGuild.icon;
+            } else {
+              logoEl.outerHTML = `<img src="${currentGuild.icon}" style="width:38px;height:38px;border-radius:var(--radius);object-fit:cover" />`;
+            }
+          }
+        }
+      }
     } catch (e) { console.warn('Sunucu listesi yuklenemedi:', e); }
   },
 
