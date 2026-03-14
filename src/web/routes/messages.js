@@ -172,5 +172,90 @@ router.post('/:guildId/:channelId/send', requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/messages/:guildId/:channelId/ai-compose - AI ile mesaj hazirla (onizleme)
+router.post('/:guildId/:channelId/ai-compose', requireAuth, async (req, res) => {
+  req.setTimeout(600000);
+  res.setTimeout(600000);
+  try {
+    const { prompt } = req.body;
+    if (!prompt?.trim()) return res.status(400).json({ error: 'Prompt bos olamaz' });
+
+    const { structuredChat } = require('../../ai/provider');
+
+    const systemPrompt = `Sen bir Discord mesaj tasarimcisisin. Kullanicinin istegine gore Discord Embed mesaji olusturacaksin.
+
+SADECE tek bir JSON objesi dondur:
+{
+  "content": "Embed ustu normal mesaj (opsiyonel, bos olabilir)",
+  "embed": {
+    "title": "Baslik",
+    "description": "Ana icerik (Discord markdown destekli: **bold**, *italic*, __underline__, ~~strikethrough~~, \`code\`, [link](url), > quote)",
+    "color": "#hex-renk (ornek: #5865f2)",
+    "fields": [
+      { "name": "Alan Basligi", "value": "Alan icerigi", "inline": true }
+    ],
+    "footer": { "text": "Alt bilgi" },
+    "thumbnail": "kucuk-resim-url (opsiyonel)",
+    "image": "buyuk-resim-url (opsiyonel)",
+    "author": { "name": "Yazar adi", "icon_url": "yazar-ikon-url (opsiyonel)" },
+    "timestamp": true
+  }
+}
+
+KURALLAR:
+- Discord markdown kullan, zengin ve sik gorunsun
+- Emoji kullanabilirsin
+- Renk konuya uygun sec
+- Fields en fazla 25 olabilir, inline:true yan yana gosterir
+- Gereksiz alanlari bos birakma, kullanma
+- Turkce icerik olustur (kullanici baska dil belirtmedikce)`;
+
+    const result = await structuredChat(systemPrompt, prompt, req.params.guildId);
+    if (!result.success) return res.json(result);
+
+    res.json({ success: true, data: result.data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/messages/:guildId/:channelId/send-embed - Embed mesaj gonder
+router.post('/:guildId/:channelId/send-embed', requireAuth, async (req, res) => {
+  try {
+    const guild = getGuild(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    const channel = guild.channels.cache.get(req.params.channelId);
+    if (!channel) return res.status(404).json({ error: 'Kanal bulunamadi' });
+
+    const { content, embed, imageUrl } = req.body;
+    const { EmbedBuilder } = require('discord.js');
+
+    const embedBuilder = new EmbedBuilder();
+    if (embed.title) embedBuilder.setTitle(embed.title);
+    if (embed.description) embedBuilder.setDescription(embed.description);
+    if (embed.color) embedBuilder.setColor(embed.color);
+    if (embed.footer?.text) embedBuilder.setFooter({ text: embed.footer.text, iconURL: embed.footer.icon_url || undefined });
+    if (embed.thumbnail) embedBuilder.setThumbnail(embed.thumbnail);
+    if (embed.image || imageUrl) embedBuilder.setImage(embed.image || imageUrl);
+    if (embed.author?.name) embedBuilder.setAuthor({ name: embed.author.name, iconURL: embed.author.icon_url || undefined });
+    if (embed.timestamp) embedBuilder.setTimestamp();
+    if (embed.fields?.length) {
+      for (const f of embed.fields) {
+        embedBuilder.addFields({ name: f.name, value: f.value, inline: f.inline || false });
+      }
+    }
+
+    const msgOpts = { embeds: [embedBuilder] };
+    if (content?.trim()) msgOpts.content = content;
+
+    const msg = await channel.send(msgOpts);
+    logger.info('web', `Embed mesaj gonderildi: ${channel.name}`, { guildId: guild.id });
+    res.json({ id: msg.id, success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
 module.exports.setBotClient = setBotClient;

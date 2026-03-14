@@ -221,6 +221,7 @@ async function loadMessages(channelId, append = false) {
           <form onsubmit="sendMessage(event,'${channelId}')" style="display:flex;gap:8px;padding:12px 0">
             <input class="form-input" id="msgSendInput" placeholder="Bot olarak mesaj gonder..." autocomplete="off" style="flex:1" />
             <button type="submit" class="btn btn-primary btn-sm">Gonder</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAICompose('${channelId}')">${svgIcon('cpu')} AI</button>
           </form>
         </div>
       `);
@@ -381,4 +382,159 @@ async function sendMessage(e, channelId) {
 
 function refreshMessages() {
   if (_msgChannelId) loadMessages(_msgChannelId, false);
+}
+
+// ===== AI MESAJ HAZIRLAMA =====
+let _aiComposeData = null;
+
+function toggleAICompose(channelId) {
+  const container = document.getElementById('msgContainer');
+  let panel = document.getElementById('aiComposePanel');
+
+  if (panel) {
+    panel.remove();
+    return;
+  }
+
+  container.insertAdjacentHTML('beforeend', `
+    <div id="aiComposePanel" style="border-top:1px solid var(--border);padding:16px;background:var(--bg-surface)">
+      <div style="font-size:14px;font-weight:600;color:var(--text-heading);margin-bottom:12px">${svgIcon('cpu')} AI ile Mesaj Hazirla</div>
+
+      <div class="form-group">
+        <label class="form-label">Ne tur bir mesaj istiyorsunuz?</label>
+        <textarea class="form-textarea" id="aiComposePrompt" rows="2" placeholder="Ornek: Sunucu kurallari hakkinda sik ve renkli bir duyuru mesaji hazirla. Kurallar: 1. Saygi, 2. Spam yasak, 3. Reklam yasak"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Resim URL (opsiyonel)</label>
+        <input class="form-input" id="aiComposeImage" placeholder="https://ornek.com/resim.png" />
+      </div>
+
+      <div class="btn-group" style="margin-bottom:12px">
+        <button class="btn btn-primary btn-sm" id="aiComposeBtn" onclick="aiCompose('${channelId}')">Hazirla</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('aiComposePanel').remove()">Kapat</button>
+      </div>
+
+      <!-- Onizleme -->
+      <div id="aiComposePreview"></div>
+    </div>
+  `);
+
+  document.getElementById('aiComposePrompt').focus();
+}
+
+async function aiCompose(channelId) {
+  const prompt = document.getElementById('aiComposePrompt')?.value?.trim();
+  if (!prompt) { showToast('Ne tur mesaj istediginizi yazin', 'error'); return; }
+
+  const guildId = localStorage.getItem('selectedGuild');
+  const btn = document.getElementById('aiComposeBtn');
+  const preview = document.getElementById('aiComposePreview');
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;margin:0"></div> AI hazirlıyor...';
+  preview.innerHTML = '';
+
+  try {
+    const res = await API.post(`/api/messages/${guildId}/${channelId}/ai-compose`, { prompt }, { timeout: 600000 });
+    if (!res.success) {
+      preview.innerHTML = `<div class="alert alert-danger">${res.error}</div>`;
+      return;
+    }
+
+    _aiComposeData = res.data;
+    const imageUrl = document.getElementById('aiComposeImage')?.value?.trim();
+    if (imageUrl && _aiComposeData.embed) {
+      _aiComposeData.embed.image = imageUrl;
+    }
+
+    // Onizleme render
+    preview.innerHTML = renderEmbedPreview(_aiComposeData) + `
+      <div class="btn-group" style="margin-top:12px">
+        <button class="btn btn-success btn-sm" onclick="sendAICompose('${channelId}')">Onayla ve Gonder</button>
+        <button class="btn btn-secondary btn-sm" onclick="aiCompose('${channelId}')">Tekrar Olustur</button>
+      </div>
+    `;
+  } catch(e) {
+    preview.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Hazirla';
+  }
+}
+
+function renderEmbedPreview(data) {
+  if (!data?.embed) return '<div class="alert alert-warning">Embed verisi olusturulamadi</div>';
+
+  const e = data.embed;
+  const color = e.color || '#5865f2';
+
+  return `
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Onizleme</div>
+    ${data.content ? `<div style="font-size:14px;color:var(--text-primary);margin-bottom:8px">${data.content}</div>` : ''}
+    <div class="embed-preview" style="border-left:4px solid ${color};background:var(--bg-card);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:14px 16px;max-width:520px">
+      ${e.author?.name ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          ${e.author.icon_url ? `<img src="${e.author.icon_url}" style="width:20px;height:20px;border-radius:50%" />` : ''}
+          <span style="font-size:12px;font-weight:600;color:var(--text-primary)">${e.author.name}</span>
+        </div>
+      ` : ''}
+      ${e.title ? `<div style="font-size:15px;font-weight:700;color:var(--accent);margin-bottom:6px">${e.title}</div>` : ''}
+      ${e.description ? `<div style="font-size:13.5px;color:var(--text-primary);line-height:1.5;margin-bottom:8px;white-space:pre-wrap">${formatEmbedText(e.description)}</div>` : ''}
+      ${e.fields?.length ? `
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+          ${e.fields.map(f => `
+            <div style="flex:${f.inline ? '1' : '1 1 100%'};min-width:${f.inline ? '120px' : '100%'};padding:6px 0">
+              <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:2px">${f.name}</div>
+              <div style="font-size:13px;color:var(--text-secondary)">${formatEmbedText(f.value)}</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      ${e.image ? `<img src="${e.image}" style="max-width:100%;border-radius:var(--radius-sm);margin-bottom:8px" onerror="this.style.display='none'" />` : ''}
+      ${e.thumbnail ? `<img src="${e.thumbnail}" style="position:absolute;top:14px;right:14px;width:60px;height:60px;border-radius:var(--radius-sm);object-fit:cover" onerror="this.style.display='none'" />` : ''}
+      ${e.footer?.text ? `
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);margin-top:4px">
+          ${e.footer.icon_url ? `<img src="${e.footer.icon_url}" style="width:16px;height:16px;border-radius:50%" />` : ''}
+          <span>${e.footer.text}</span>
+          ${e.timestamp ? `<span> • ${new Date().toLocaleDateString('tr-TR')}</span>` : ''}
+        </div>
+      ` : (e.timestamp ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">${new Date().toLocaleDateString('tr-TR')}</div>` : '')}
+    </div>
+  `;
+}
+
+function formatEmbedText(text) {
+  if (!text) return '';
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  text = text.replace(/__(.+?)__/g, '<u>$1</u>');
+  text = text.replace(/~~(.+?)~~/g, '<del>$1</del>');
+  text = text.replace(/`(.+?)`/g, '<code class="msg-inline-code">$1</code>');
+  text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" style="color:var(--accent)">$1</a>');
+  text = text.replace(/^> (.+)$/gm, '<div style="border-left:3px solid var(--text-muted);padding-left:8px;color:var(--text-muted)">$1</div>');
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+
+async function sendAICompose(channelId) {
+  if (!_aiComposeData) return;
+  const guildId = localStorage.getItem('selectedGuild');
+  const imageUrl = document.getElementById('aiComposeImage')?.value?.trim();
+
+  try {
+    const res = await API.post(`/api/messages/${guildId}/${channelId}/send-embed`, {
+      content: _aiComposeData.content || '',
+      embed: _aiComposeData.embed,
+      imageUrl: imageUrl || undefined
+    });
+
+    if (res.success) {
+      showToast('Embed mesaj gonderildi');
+      _aiComposeData = null;
+      const panel = document.getElementById('aiComposePanel');
+      if (panel) panel.remove();
+      loadMessages(channelId, false);
+    }
+  } catch(e) { showToast(e.message, 'error'); }
 }

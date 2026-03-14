@@ -1041,6 +1041,9 @@ td strong { color: var(--text-primary); }
 }
 .msg-emoji { font-size: 18px; vertical-align: middle; }
 
+.embed-preview { position: relative; overflow: hidden; }
+.embed-preview img { max-height: 300px; }
+
 .msg-send-bar {
   border-top: 1px solid var(--border);
   padding: 4px 16px;

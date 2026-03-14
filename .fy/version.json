@@ -1,6 +1,7 @@
 {
-  "version": "1.2.7.0",
+  "version": "1.2.8.0",
   "history": [
+    { "version": "1.2.8.0", "date": "2026-03-15", "summary": "AI ile embed mesaj hazirlama: onizleme + onay + resim URL, Discord embed builder (title/desc/fields/footer/thumbnail/image/author/color)" },
     { "version": "1.2.7.0", "date": "2026-03-15", "summary": "Kanal izin yonetimi (rol bazli allow/deny/neutral toggle), AI tekil kanal/rol olusturma, yasakli uyeler listesi + unban" },
     { "version": "1.2.6.0", "date": "2026-03-15", "summary": "Sansur kaldirildi, ephemeral uyarilar (auto-delete), yasakli uyeler bolumu" },
     { "version": "1.2.5.0", "date": "2026-03-15", "summary": "Yasakli kelimeler ayri sayfa + rehber, Versiyonlar sayfasi (GitHub fetch + guncelleme kontrolu), repo public yapildi" },
