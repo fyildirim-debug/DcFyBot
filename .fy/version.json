@@ -1,6 +1,7 @@
 {
-  "version": "1.0.0.0",
+  "version": "1.0.0.1",
   "history": [
+    { "version": "1.0.0.1", "date": "2026-03-14", "summary": "start.sh ve start.bat baslat dosyalari eklendi" },
     { "version": "1.0.0.0", "date": "2026-03-14", "summary": "Ilk surum - tam proje altyapisi: Discord bot, web panel, AI entegrasyonu, plugin sistemi, Docker" }
   ]
 }
