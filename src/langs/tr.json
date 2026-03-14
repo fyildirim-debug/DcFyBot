@@ -89,7 +89,8 @@
     "logs": "Loglar",
     "api": "API",
     "system": "Sistem",
-    "messages": "Mesajlar"
+    "messages": "Mesajlar",
+    "aiSetup": "AI Sunucu Kur"
   },
   "dashboard": {
     "title": "Kontrol Paneli",

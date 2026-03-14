@@ -97,6 +97,9 @@ function renderLayout(content, activePage) {
           ${navItem('/members', 'members', 'users', activePage)}
           ${navItem('/roles', 'roles', 'shield', activePage)}
 
+          <div class="nav-section"><span class="nav-section-label">Sunucu Ayarlari</span></div>
+          ${navItem('/ai-setup', 'aiSetup', 'cpu', activePage)}
+
           <div class="nav-section"><span class="nav-section-label">${I18n.t('common.settings') || 'Ayarlar'}</span></div>
           ${navItem('/ai-settings', 'aiSettings', 'cpu', activePage)}
           ${navItem('/bot-settings', 'botSettings', 'settings', activePage)}

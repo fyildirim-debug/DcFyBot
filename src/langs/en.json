@@ -89,7 +89,8 @@
     "logs": "Logs",
     "api": "API",
     "system": "System",
-    "messages": "Messages"
+    "messages": "Messages",
+    "aiSetup": "AI Server Setup"
   },
   "dashboard": {
     "title": "Dashboard",
