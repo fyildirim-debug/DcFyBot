@@ -1,18 +1,26 @@
 {
-  "version": "1.2.0.0",
+  "version": "1.2.4.1",
   "history": [
-    { "version": "1.2.0.0", "date": "2026-03-15", "summary": "AI ile komple sunucu kurulumu, AI kanal/rol olusturma, mesaj yonetimi, toplu silme, drag-drop siralama, detayli izin sistemi, plugin web-extension, bot rehber paneli, mention resolve, log sifirlama" },
-    { "version": "1.1.0.0", "date": "2026-03-14", "summary": "OLED dark theme redesign, sidebar section gruplama, danger zone ayirma, sistem sayfasi, toast bildirimler" },
+    { "version": "1.2.4.1", "date": "2026-03-15", "summary": "AI islemleri timeout hatasi duzeltildi (Failed to fetch), backend 10dk + frontend AbortController" },
+    { "version": "1.2.4.0", "date": "2026-03-15", "summary": "Yasakli kelime filtresi: 6 islem (sil/sansurle/uyar/sustur/at/yasakla), 6 eslesme tipi, ozel uyari mesaji, yonetici muaf" },
+    { "version": "1.2.3.2", "date": "2026-03-15", "summary": "Sidebar logo ve baslik secili sunucuya gore degisiyor" },
+    { "version": "1.2.3.1", "date": "2026-03-15", "summary": "Uye listesi 0 uye hatasi duzeltildi, guild.members.fetch timeout + retry" },
+    { "version": "1.2.3.0", "date": "2026-03-15", "summary": "Sunucu ayarlari sayfasi: ad/aciklama/dogrulama duzenleme, davet yonetimi, bot takma adi, sunucu degistirme otomatik yenileme" },
+    { "version": "1.2.2.0", "date": "2026-03-15", "summary": "Gelismis susturma sistemi: sustur/ac butonlari, mesaj silme + DM uyari, kalan sure, erken kaldirma" },
+    { "version": "1.2.1.0", "date": "2026-03-15", "summary": "AI Sunucu Kur ayri sayfa + rehber panel, sidebar Sunucu Ayarlari bolumu, SVG boyut duzeltme" },
+    { "version": "1.2.0.1", "date": "2026-03-15", "summary": "Sidebar versiyon dinamik - version.json'dan okuyor" },
+    { "version": "1.2.0.0", "date": "2026-03-15", "summary": "Buyuk guncelleme: AI sunucu kurulumu, AI kanal/rol olusturma, mesaj yonetimi (chat gorunumu, toplu silme, pin, mention), drag-drop kanal siralama, 40+ izin yonetimi, plugin web-extension, sistem sayfasi, bot rehber paneli, OLED dark theme redesign" },
+    { "version": "1.1.0.0", "date": "2026-03-14", "summary": "OLED dark theme, sidebar section gruplama, danger zone, toast bildirimler" },
     { "version": "1.0.5.0", "date": "2026-03-14", "summary": "Veritabani sifirla butonu" },
-    { "version": "1.0.4.1", "date": "2026-03-14", "summary": "Logger canli yazim" },
+    { "version": "1.0.4.1", "date": "2026-03-14", "summary": "Logger canli yazim: appendFileSync" },
     { "version": "1.0.4.0", "date": "2026-03-14", "summary": "Setup wizard siyah ekran hatasi duzeltildi" },
-    { "version": "1.0.3.2", "date": "2026-03-14", "summary": "EBUSY hatasi duzeltildi" },
+    { "version": "1.0.3.2", "date": "2026-03-14", "summary": "EBUSY log dosyasi hatasi duzeltildi" },
     { "version": "1.0.3.1", "date": "2026-03-14", "summary": "dev.bat syntax hatasi duzeltildi" },
-    { "version": "1.0.3.0", "date": "2026-03-14", "summary": "Dosya log sistemi eklendi" },
-    { "version": "1.0.2.0", "date": "2026-03-14", "summary": "dev.sh/bat gelistirici modu eklendi" },
+    { "version": "1.0.3.0", "date": "2026-03-14", "summary": "Dosya log sistemi ve canli log stream" },
+    { "version": "1.0.2.0", "date": "2026-03-14", "summary": "Gelistirici modu: dev.sh ve dev.bat" },
     { "version": "1.0.1.1", "date": "2026-03-14", "summary": "DB port cakismasi duzeltildi" },
-    { "version": "1.0.1.0", "date": "2026-03-14", "summary": "start dosyalarina otomatik kurulum eklendi" },
+    { "version": "1.0.1.0", "date": "2026-03-14", "summary": "start dosyalarina otomatik Docker + Node.js kurulum" },
     { "version": "1.0.0.1", "date": "2026-03-14", "summary": "start.sh ve start.bat eklendi" },
-    { "version": "1.0.0.0", "date": "2026-03-14", "summary": "Ilk surum" }
+    { "version": "1.0.0.0", "date": "2026-03-14", "summary": "Ilk surum: tam proje altyapisi" }
   ]
 }
