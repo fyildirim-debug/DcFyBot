@@ -58,7 +58,7 @@ function svgIcon(name) {
     check: '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>',
     chat: '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>'
   };
-  return `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">${icons[name] || ''}</svg>`;
+  return `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" width="16" height="16" style="width:16px;height:16px;flex-shrink:0">${icons[name] || ''}</svg>`;
 }
 
 // Sidebar layout with grouped navigation
