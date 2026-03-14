@@ -1,6 +1,7 @@
 {
-  "version": "1.0.1.1",
+  "version": "1.0.2.0",
   "history": [
+    { "version": "1.0.2.0", "date": "2026-03-14", "summary": "dev.sh/bat: Gelistirici modu eklendi - sistem bilgisi, DB testi, dosya kontrolu, watch modu" },
     { "version": "1.0.1.1", "date": "2026-03-14", "summary": "DB port cakismasi duzeltildi: 5432->5433, docker-compose DB_PORT degiskeni, baglanti test edildi" },
     { "version": "1.0.1.0", "date": "2026-03-14", "summary": "start.sh/bat: Docker + Node.js otomatik kurulum eklendi (winget, brew, apt, dnf, pacman)" },
     { "version": "1.0.0.1", "date": "2026-03-14", "summary": "start.sh ve start.bat baslat dosyalari eklendi" },
