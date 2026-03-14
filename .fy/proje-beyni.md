@@ -1,27 +1,29 @@
-# FyDCBot
-**Tarih:** 2026-03-14
+# DcFyBot
+**Tarih:** 2026-03-15
 
 ## Ozet
-AI destekli Discord botu. Web panelden yonetilebilir, kurulum sihirbazi, kanal/uye/yetki yonetimi, yedekleme, plugin sistemi. Docker uyumlu, PostgreSQL, tek komutla calisir.
+AI destekli Discord botu. Web panelden yonetilebilir, AI ile komple sunucu kurulumu, mesaj yonetimi, drag-drop kanal siralama, detayli izin sistemi, plugin web-extension, Docker uyumlu.
 
 ## Yapi
-- Kok: package.json, Dockerfile, docker-compose.yml
+- Kok: package.json, Dockerfile, docker-compose.yml, start.bat/sh, dev.bat/sh
 - src/: bot/, web/, db/, ai/, plugins/, langs/, utils/
-- public/: SPA frontend (HTML/CSS/JS)
+- public/: SPA frontend (OLED dark theme, Fira Code/Sans)
 - data/: yedekler
 
 ## Teknoloji
 - Discord.js v14, Express.js, PostgreSQL (pg)
-- Anthropic SDK + OpenAI SDK (ayarlanabilir)
+- Anthropic SDK + OpenAI SDK (ayarlanabilir, 128K token)
 - JWT auth, bcrypt, Docker
-- Vanilla JS SPA frontend
+- Vanilla JS SPA, OLED dark theme, drag-drop
 
 ## Ozellikler
-- Setup wizard (ilk kurulum web'den)
-- AI (Claude/OpenAI uyumlu, base_url/model/key ayarlanabilir)
-- Kanal/uye/yetki yonetimi + yedekleme/geri yukleme
-- Plugin sistemi (GitHub, RSS, Captcha)
-- i18n (TR/EN)
+- AI ile komple sunucu kurulumu (roller+kanallar+izinler tek seferde)
+- AI ile kanal/rol olusturma (dogal dil ile, izinler dahil)
+- Mesaj yonetimi (chat gorunumu, toplu secim/silme, pin, mention resolve)
+- Drag-drop kanal siralama, detayli rol izin yonetimi (40+ izin)
+- Plugin web-extension (sidebar nav, sayfa, route kaydedebilir)
+- Setup wizard, bot rehber paneli, i18n (TR/EN)
+- Kanal/uye/yetki CRUD + yedekleme/geri yukleme
 
 ## Istatistik
-Dosya: ~50, Teknoloji: Node.js monolith
+Dosya: ~60, Teknoloji: Node.js monolith

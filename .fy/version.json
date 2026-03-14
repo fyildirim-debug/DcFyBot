@@ -1,11 +1,13 @@
 {
-  "version": "1.0.5.0",
+  "version": "1.2.0.0",
   "history": [
-    { "version": "1.0.5.0", "date": "2026-03-14", "summary": "Veritabani sifirla butonu: tum verileri siler, kuruluma yonlendirir, cift onay gerektirir" },
-    { "version": "1.0.4.1", "date": "2026-03-14", "summary": "Logger canli yazim: appendFileSync, buffer yok aninda diske yazilir" },
+    { "version": "1.2.0.0", "date": "2026-03-15", "summary": "AI ile komple sunucu kurulumu, AI kanal/rol olusturma, mesaj yonetimi, toplu silme, drag-drop siralama, detayli izin sistemi, plugin web-extension, bot rehber paneli, mention resolve, log sifirlama" },
+    { "version": "1.1.0.0", "date": "2026-03-14", "summary": "OLED dark theme redesign, sidebar section gruplama, danger zone ayirma, sistem sayfasi, toast bildirimler" },
+    { "version": "1.0.5.0", "date": "2026-03-14", "summary": "Veritabani sifirla butonu" },
+    { "version": "1.0.4.1", "date": "2026-03-14", "summary": "Logger canli yazim" },
     { "version": "1.0.4.0", "date": "2026-03-14", "summary": "Setup wizard siyah ekran hatasi duzeltildi" },
     { "version": "1.0.3.2", "date": "2026-03-14", "summary": "EBUSY hatasi duzeltildi" },
-    { "version": "1.0.3.1", "date": "2026-03-14", "summary": "dev.bat batch syntax hatasi duzeltildi" },
+    { "version": "1.0.3.1", "date": "2026-03-14", "summary": "dev.bat syntax hatasi duzeltildi" },
     { "version": "1.0.3.0", "date": "2026-03-14", "summary": "Dosya log sistemi eklendi" },
     { "version": "1.0.2.0", "date": "2026-03-14", "summary": "dev.sh/bat gelistirici modu eklendi" },
     { "version": "1.0.1.1", "date": "2026-03-14", "summary": "DB port cakismasi duzeltildi" },

@@ -37,7 +37,16 @@ function createServer() {
   app.use('/api/channels', require('./routes/channels'));
   app.use('/api/members', require('./routes/members'));
   app.use('/api/roles', require('./routes/roles'));
+  app.use('/api/messages', require('./routes/messages'));
   app.use('/api/backup', require('./routes/backup'));
+
+  // Plugin web registry endpoint
+  app.get('/api/plugins/registry', (req, res) => {
+    try {
+      const { getPluginWebRegistry } = require('../plugins/loader');
+      res.json(getPluginWebRegistry());
+    } catch { res.json([]); }
+  });
 
   // SPA fallback - tum diger route'lar index.html'e yonlendir
   app.get('*', (req, res) => {
@@ -64,6 +73,7 @@ function attachBotClient(client) {
   require('./routes/backup').setBotClient(client);
   require('./routes/stats').setBotClient(client);
   require('./routes/guilds').setBotClient(client);
+  require('./routes/messages').setBotClient(client);
 }
 
 module.exports = { createServer, attachBotClient };

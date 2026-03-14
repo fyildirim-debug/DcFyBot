@@ -12,7 +12,7 @@ const SetupPage = {
       <div class="setup-container">
         <div class="setup-card">
           <div class="setup-logo">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
               <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
             </svg>
           </div>
@@ -20,7 +20,7 @@ const SetupPage = {
           <p class="setup-desc">${I18n.t('setup.welcome')}</p>
 
           <div class="setup-steps">
-            ${[1,2,3,4,5].map(s => `<div class="setup-step ${s === step ? 'active' : s < step ? 'done' : ''}">${s}</div>`).join('')}
+            ${[1,2,3,4,5].map(s => `<div class="setup-step ${s === step ? 'active' : s < step ? 'done' : ''}">${s < step ? '&#10003;' : s}</div>`).join('')}
           </div>
 
           <div id="stepContent"></div>
@@ -47,7 +47,8 @@ const SetupPage = {
   _stepLanguage() {
     const d = SetupPage._data;
     return `
-      <h3 style="margin-bottom:16px">${I18n.t('setup.step1Title')}</h3>
+      <div class="section-title">${I18n.t('setup.step1Title')}</div>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">${I18n.t('setup.step1Desc')}</p>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.language')}</label>
         <select class="form-select" id="setupLang">
@@ -64,8 +65,8 @@ const SetupPage = {
   _stepAdmin() {
     const d = SetupPage._data;
     return `
-      <h3 style="margin-bottom:16px">${I18n.t('setup.step2Title')}</h3>
-      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">${I18n.t('setup.step2Desc')}</p>
+      <div class="section-title">${I18n.t('setup.step2Title')}</div>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">${I18n.t('setup.step2Desc')}</p>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.adminUsername')}</label>
         <input class="form-input" id="adminUser" value="${d.admin.username||'admin'}" />
@@ -89,16 +90,16 @@ const SetupPage = {
   _stepDiscord() {
     const d = SetupPage._data;
     return `
-      <h3 style="margin-bottom:16px">${I18n.t('setup.step3Title')}</h3>
-      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">${I18n.t('setup.step3Desc')}</p>
+      <div class="section-title">${I18n.t('setup.step3Title')}</div>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">${I18n.t('setup.step3Desc')}</p>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.discordToken')}</label>
-        <input class="form-input" id="discordToken" type="password" value="${d.discord.token||''}" />
+        <input class="form-input mono" id="discordToken" type="password" value="${d.discord.token||''}" />
         <p class="form-hint">${I18n.t('setup.discordTokenHelp')}</p>
       </div>
       <div class="form-group">
         <label class="form-label">${I18n.t('setup.discordClientId')}</label>
-        <input class="form-input" id="discordClientId" value="${d.discord.clientId||''}" />
+        <input class="form-input mono" id="discordClientId" value="${d.discord.clientId||''}" />
         <p class="form-hint">${I18n.t('setup.discordClientIdHelp')}</p>
       </div>
       <div class="btn-group" style="margin-top:24px;justify-content:space-between">
@@ -111,11 +112,11 @@ const SetupPage = {
   _stepAI() {
     const d = SetupPage._data;
     return `
-      <h3 style="margin-bottom:16px">${I18n.t('setup.step4Title')}</h3>
-      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">${I18n.t('setup.step4Desc')}</p>
+      <div class="section-title">${I18n.t('setup.step4Title')}</div>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">${I18n.t('setup.step4Desc')}</p>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <span>${I18n.t('ai.enabled')}</span>
+      <div class="form-row" style="margin-bottom:20px">
+        <span style="font-size:14px;font-weight:500">${I18n.t('ai.enabled')}</span>
         <button class="toggle ${!d.ai.skip?'active':''}" onclick="SetupPage._toggleAI()"></button>
       </div>
 
@@ -130,15 +131,15 @@ const SetupPage = {
         </div>
         <div class="form-group">
           <label class="form-label">${I18n.t('ai.baseUrl')}</label>
-          <input class="form-input" id="aiBaseUrl" placeholder="https://api.anthropic.com" />
+          <input class="form-input mono" id="aiBaseUrl" placeholder="https://api.anthropic.com" />
         </div>
         <div class="form-group">
           <label class="form-label">${I18n.t('ai.apiKey')}</label>
-          <input class="form-input" type="password" id="aiApiKey" />
+          <input class="form-input mono" type="password" id="aiApiKey" />
         </div>
         <div class="form-group">
           <label class="form-label">${I18n.t('ai.model')}</label>
-          <input class="form-input" id="aiModel" placeholder="claude-sonnet-4-20250514" />
+          <input class="form-input mono" id="aiModel" placeholder="claude-sonnet-4-20250514" />
         </div>
       </div>
 
@@ -151,10 +152,12 @@ const SetupPage = {
 
   _stepComplete() {
     return `
-      <div style="text-align:center;padding:20px 0">
-        <div style="font-size:48px;margin-bottom:16px">&#10003;</div>
-        <h3>${I18n.t('setup.step5Title')}</h3>
-        <p style="color:var(--text-secondary);margin-top:8px">${I18n.t('setup.setupComplete')}</p>
+      <div style="text-align:center;padding:24px 0">
+        <svg fill="none" stroke="var(--success)" viewBox="0 0 24 24" stroke-width="1.5" style="width:48px;height:48px;margin-bottom:16px">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <h3 style="color:var(--text-heading)">${I18n.t('setup.step5Title')}</h3>
+        <p style="color:var(--text-muted);margin-top:8px;font-size:13px">${I18n.t('setup.setupComplete')}</p>
         <div class="spinner" style="margin:24px auto"></div>
       </div>
     `;
@@ -179,7 +182,6 @@ const SetupPage = {
   },
 
   async _next() {
-    // Dil adiminda dil degisikligini uygula
     if (SetupPage._step === 1) {
       const lang = document.getElementById('setupLang')?.value || 'tr';
       if (lang !== SetupPage._data.language) {

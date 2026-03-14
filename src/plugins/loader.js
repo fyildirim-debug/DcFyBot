@@ -33,7 +33,8 @@ async function loadPlugins(botClient) {
       plugins.set(manifest.name, {
         manifest,
         instance: plugin,
-        loaded: true
+        loaded: true,
+        pluginPath
       });
 
       logger.info('plugins', `Eklenti yuklendi: ${manifest.name} v${manifest.version}`);
@@ -91,4 +92,52 @@ async function updatePluginConfig(name, guildId = '_global', config = {}) {
   );
 }
 
-module.exports = { loadPlugins, startPlugins, getPlugins, togglePlugin, updatePluginConfig };
+// Plugin web registry - nav items, page scripts, routes
+function getPluginWebRegistry() {
+  const registry = [];
+  for (const [name, p] of plugins) {
+    const web = p.manifest.web;
+    if (!web) continue;
+    registry.push({
+      name,
+      navItems: web.navItems || [],
+      pages: (web.pages || []).map(f => `/plugins/${name}/${f}`),
+      hasRoutes: !!(web.routes && web.routes.length > 0)
+    });
+  }
+  return registry;
+}
+
+// Mount plugin Express routes and static assets
+function mountPluginWeb(app) {
+  const express = require('express');
+
+  for (const [name, p] of plugins) {
+    const web = p.manifest.web;
+    if (!web) continue;
+
+    // Serve plugin web/ directory as static
+    const webDir = path.join(p.pluginPath, 'web');
+    if (fs.existsSync(webDir)) {
+      app.use(`/plugins/${name}`, express.static(webDir));
+    }
+
+    // Mount plugin Express routes
+    if (web.routes) {
+      for (const routeFile of web.routes) {
+        const routePath = path.join(p.pluginPath, routeFile);
+        if (fs.existsSync(routePath)) {
+          try {
+            const router = require(routePath);
+            app.use(`/api/plugins/${name}`, router);
+            logger.info('plugins', `Eklenti web route yuklendi: ${name}`);
+          } catch (err) {
+            logger.error('plugins', `Eklenti route yuklenemedi [${name}]: ${err.message}`);
+          }
+        }
+      }
+    }
+  }
+}
+
+module.exports = { loadPlugins, startPlugins, getPlugins, getPluginWebRegistry, mountPluginWeb, togglePlugin, updatePluginConfig };

@@ -4,7 +4,7 @@ const { testConnection } = require('./db');
 const { runMigrations } = require('./db/migrations');
 const { createServer, attachBotClient } = require('./web/server');
 const { startBot, getClient } = require('./bot/client');
-const { loadPlugins, startPlugins } = require('./plugins/loader');
+const { loadPlugins, startPlugins, mountPluginWeb } = require('./plugins/loader');
 const config = require('./config');
 const logger = require('./utils/logger');
 
@@ -69,6 +69,7 @@ async function main() {
       // 6. Eklentileri yukle ve baslat
       await loadPlugins(client);
       await startPlugins(client);
+      mountPluginWeb(app);
       console.log('[+] Eklentiler yuklendi');
     } else {
       console.log('[!] Bot baslatılamadı - token kontrol edin');

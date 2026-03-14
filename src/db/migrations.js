@@ -21,7 +21,7 @@ const migrations = [
         base_url TEXT DEFAULT '',
         api_key TEXT DEFAULT '',
         model TEXT DEFAULT '',
-        max_tokens INTEGER DEFAULT 1024,
+        max_tokens INTEGER DEFAULT 128000,
         temperature REAL DEFAULT 0.7,
         system_prompt TEXT DEFAULT 'Sen yardimci bir Discord asistanisin.',
         updated_at TIMESTAMPTZ DEFAULT NOW()

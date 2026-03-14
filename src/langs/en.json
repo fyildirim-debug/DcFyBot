@@ -87,7 +87,9 @@
     "plugins": "Plugins",
     "backup": "Backup",
     "logs": "Logs",
-    "api": "API"
+    "api": "API",
+    "system": "System",
+    "messages": "Messages"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -189,7 +191,25 @@
     "moderationEnabled": "Moderation Enabled",
     "restart": "Restart Bot",
     "stop": "Stop Bot",
-    "start": "Start Bot"
+    "start": "Start Bot",
+    "guideTitle": "How to Add a Bot?",
+    "guideStep1Title": "1. Discord Developer Portal",
+    "guideStep1Desc": "Go to discord.com/developers/applications and click 'New Application'.",
+    "guideStep2Title": "2. Create a Bot",
+    "guideStep2Desc": "Click 'Bot' in the left menu, press 'Add Bot' and confirm.",
+    "guideStep3Title": "3. Copy Token",
+    "guideStep3Desc": "Click 'Reset Token' and copy the displayed token. Paste it into the 'Bot Token' field above.",
+    "guideStep4Title": "4. Enable Intents",
+    "guideStep4Desc": "On the same page, scroll down to 'Privileged Gateway Intents' and enable all 3: Presence Intent, Server Members Intent, Message Content Intent.",
+    "guideStep5Title": "5. Invite to Server",
+    "guideStep5Desc": "Go to 'OAuth2 > URL Generator'. Select 'bot' and 'applications.commands' scopes. Check 'Administrator' permission. Use the generated URL to add the bot to your server.",
+    "guideStep6Title": "6. Client ID",
+    "guideStep6Desc": "Copy the 'Application ID' from 'General Information' page and paste it into the 'Client ID' field above.",
+    "guideIntentsTitle": "Required Intents",
+    "guideIntentsDesc": "The following intents must be enabled for the bot to work properly:",
+    "guideIntentsPresence": "Presence Intent — Member status information",
+    "guideIntentsMembers": "Server Members Intent — Member list access",
+    "guideIntentsMessage": "Message Content Intent — Read message content"
   },
   "plugins": {
     "title": "Plugin Management",

@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const { PermissionsBitField } = require('discord.js');
 const { requireAuth } = require('../middleware/auth');
 const logger = require('../../utils/logger');
 
@@ -45,12 +46,24 @@ router.post('/:guildId', requireAuth, async (req, res) => {
 
     const { name, color, hoist, mentionable, permissions } = req.body;
 
+    // Permissions string array -> bitfield
+    let permBits = [];
+    if (Array.isArray(permissions) && permissions.length > 0) {
+      const bits = new PermissionsBitField();
+      for (const perm of permissions) {
+        if (PermissionsBitField.Flags[perm] !== undefined) {
+          bits.add(PermissionsBitField.Flags[perm]);
+        }
+      }
+      permBits = bits.bitfield;
+    }
+
     const role = await guild.roles.create({
       name: name || 'Yeni Rol',
       color: color || undefined,
       hoist: hoist || false,
       mentionable: mentionable || false,
-      permissions: permissions || []
+      permissions: permBits
     });
 
     logger.info('web', `Rol olusturuldu: ${role.name} (${guild.name})`, { guildId: guild.id });
@@ -75,7 +88,16 @@ router.put('/:guildId/:roleId', requireAuth, async (req, res) => {
     if (color !== undefined) updates.color = color;
     if (hoist !== undefined) updates.hoist = hoist;
     if (mentionable !== undefined) updates.mentionable = mentionable;
-    if (permissions !== undefined) updates.permissions = permissions;
+    if (permissions !== undefined) {
+      // String array'i PermissionsBitField'e cevir
+      const bits = new PermissionsBitField();
+      for (const perm of permissions) {
+        if (PermissionsBitField.Flags[perm] !== undefined) {
+          bits.add(PermissionsBitField.Flags[perm]);
+        }
+      }
+      updates.permissions = bits.bitfield;
+    }
     if (position !== undefined) updates.position = position;
 
     await role.edit(updates);
@@ -102,6 +124,70 @@ router.delete('/:guildId/:roleId', requireAuth, async (req, res) => {
 
     logger.info('web', `Rol silindi: ${name} (${guild.name})`, { guildId: guild.id });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/roles/:guildId/ai-create - AI ile rol olustur
+router.post('/:guildId/ai-create', requireAuth, async (req, res) => {
+  try {
+    const guild = getGuild(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    const { prompt } = req.body;
+    if (!prompt?.trim()) return res.status(400).json({ error: 'Prompt bos olamaz' });
+
+    const { structuredChat } = require('../../ai/provider');
+
+    const existing = guild.roles.cache.map(r => r.name).join(', ');
+
+    const systemPrompt = `Sen bir Discord sunucu yoneticisisin. Kullanicinin istegine gore rol yapisi olusturacaksin.
+Mevcut roller: ${existing}
+
+SADECE JSON dizisi dondur. Her eleman:
+{
+  "name": "Rol Adi",
+  "color": "#hex-renk",
+  "hoist": true/false,
+  "mentionable": true/false,
+  "permissions": ["ViewChannel","SendMessages","Connect","Speak","ReadMessageHistory","AddReactions","UseApplicationCommands"]
+}
+
+Kullanilabilir izinler: Administrator, ViewChannel, ManageChannels, ManageRoles, ManageGuild, KickMembers, BanMembers, ModerateMembers, CreateInstantInvite, ChangeNickname, ManageNicknames, ManageWebhooks, ManageEmojisAndStickers, ViewAuditLog, SendMessages, SendMessagesInThreads, CreatePublicThreads, CreatePrivateThreads, EmbedLinks, AttachFiles, AddReactions, UseExternalEmojis, UseExternalStickers, ReadMessageHistory, ManageMessages, ManageThreads, UseApplicationCommands, SendTTSMessages, MentionEveryone, Connect, Speak, Stream, UseVAD, PrioritySpeaker, MuteMembers, DeafenMembers, MoveMembers, UseEmbeddedActivities
+
+Rolleri hiyerarsik sirala (en yetkili uste). Mantikli renkler sec.`;
+
+    const result = await structuredChat(systemPrompt, prompt, guild.id);
+    if (!result.success) return res.json(result);
+
+    const roles = Array.isArray(result.data) ? result.data : [result.data];
+    const created = [];
+
+    // Rolleri ters siradan olustur (en alttaki once, position dogru olsun)
+    for (const r of [...roles].reverse()) {
+      try {
+        const bits = new PermissionsBitField();
+        for (const p of (r.permissions || [])) {
+          if (PermissionsBitField.Flags[p]) bits.add(PermissionsBitField.Flags[p]);
+        }
+
+        const newRole = await guild.roles.create({
+          name: r.name,
+          color: r.color || undefined,
+          hoist: r.hoist || false,
+          mentionable: r.mentionable || false,
+          permissions: bits.bitfield
+        });
+
+        created.push({ name: newRole.name, color: newRole.hexColor, id: newRole.id });
+      } catch (err) {
+        logger.error('web', `AI rol olusturma hatasi: ${r.name} - ${err.message}`);
+      }
+    }
+
+    logger.info('web', `AI ile ${created.length} rol olusturuldu (${guild.name})`, { guildId: guild.id });
+    res.json({ success: true, created, plan: roles });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

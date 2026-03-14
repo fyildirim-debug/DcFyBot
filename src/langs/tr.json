@@ -87,7 +87,9 @@
     "plugins": "Eklentiler",
     "backup": "Yedekleme",
     "logs": "Loglar",
-    "api": "API"
+    "api": "API",
+    "system": "Sistem",
+    "messages": "Mesajlar"
   },
   "dashboard": {
     "title": "Kontrol Paneli",
@@ -189,7 +191,25 @@
     "moderationEnabled": "Moderasyon Aktif",
     "restart": "Botu Yeniden Baslat",
     "stop": "Botu Durdur",
-    "start": "Botu Baslat"
+    "start": "Botu Baslat",
+    "guideTitle": "Bot Nasil Eklenir?",
+    "guideStep1Title": "1. Discord Developer Portal",
+    "guideStep1Desc": "discord.com/developers/applications adresine gidin ve 'New Application' butonuna tiklayin.",
+    "guideStep2Title": "2. Bot Olusturun",
+    "guideStep2Desc": "Sol menuден 'Bot' sekmesine tiklayin, 'Add Bot' butonuna basin ve onaylayin.",
+    "guideStep3Title": "3. Token Kopyalayin",
+    "guideStep3Desc": "'Reset Token' butonuna tiklayin ve gorunen token'i kopyalayin. Bu token'i yukaridaki 'Bot Token' alanina yapistirin.",
+    "guideStep4Title": "4. Intents Acin",
+    "guideStep4Desc": "Ayni sayfada asagi kayip 'Privileged Gateway Intents' altindaki 3 secenegi acin: Presence Intent, Server Members Intent, Message Content Intent.",
+    "guideStep5Title": "5. Sunucuya Davet Edin",
+    "guideStep5Desc": "Sol menuden 'OAuth2 > URL Generator' acin. Scope olarak 'bot' ve 'applications.commands' secin. Izinlerde 'Administrator' isaretleyin. Olusturulan URL ile botu sunucunuza ekleyin.",
+    "guideStep6Title": "6. Client ID",
+    "guideStep6Desc": "'General Information' sayfasindan 'Application ID' degerini kopyalayip yukaridaki 'Client ID' alanina yapistirin.",
+    "guideIntentsTitle": "Gerekli Intents",
+    "guideIntentsDesc": "Botun duzgun calismasi icin su izinlerin acik olmasi gerekir:",
+    "guideIntentsPresence": "Presence Intent — Uye durum bilgisi",
+    "guideIntentsMembers": "Server Members Intent — Uye listesi erisimi",
+    "guideIntentsMessage": "Message Content Intent — Mesaj icerigi okuma"
   },
   "plugins": {
     "title": "Eklenti Yonetimi",

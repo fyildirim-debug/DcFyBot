@@ -24,6 +24,12 @@ function initFileLog() {
 
   const date = new Date().toISOString().slice(0, 10);
   logFilePath = path.join(logsDir, `${date}.log`);
+
+  // Her baslatmada log dosyasini sifirla
+  try {
+    fs.writeFileSync(logFilePath, '');
+  } catch {}
+
   logReady = true;
 
   // Baslangic ayirici

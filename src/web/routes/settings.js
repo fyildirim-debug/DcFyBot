@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { queryOne, query } = require('../../db');
 const { requireAuth } = require('../middleware/auth');
 const logger = require('../../utils/logger');
+const bot = require('../../bot/client');
 
 const router = Router();
 
@@ -71,27 +72,27 @@ router.post('/ai/test', requireAuth, async (req, res) => {
       return res.json({ success: false, error: 'API anahtari ayarlanmamis' });
     }
 
+    const model = settings.model || (settings.provider === 'anthropic' ? 'claude-sonnet-4-20250514' : 'gpt-4o-mini');
+
     if (settings.provider === 'anthropic') {
       const Anthropic = require('@anthropic-ai/sdk');
-      const client = new Anthropic({
-        apiKey: settings.api_key,
-        baseURL: settings.base_url || undefined
-      });
+      const opts = { apiKey: settings.api_key, timeout: 600000 };
+      if (settings.base_url && settings.base_url.trim()) opts.baseURL = settings.base_url.trim();
+      const client = new Anthropic(opts);
       await client.messages.create({
-        model: settings.model,
+        model,
         max_tokens: 10,
-        messages: [{ role: 'user', content: 'test' }]
+        messages: [{ role: 'user', content: 'Merhaba, test.' }]
       });
     } else {
       const OpenAI = require('openai');
-      const client = new OpenAI({
-        apiKey: settings.api_key,
-        baseURL: settings.base_url || undefined
-      });
+      const opts = { apiKey: settings.api_key, timeout: 600000 };
+      if (settings.base_url && settings.base_url.trim()) opts.baseURL = settings.base_url.trim();
+      const client = new OpenAI(opts);
       await client.chat.completions.create({
-        model: settings.model,
+        model,
         max_tokens: 10,
-        messages: [{ role: 'user', content: 'test' }]
+        messages: [{ role: 'user', content: 'Merhaba, test.' }]
       });
     }
 
@@ -142,10 +143,45 @@ router.put('/bot', requireAuth, async (req, res) => {
     );
 
     logger.info('web', 'Bot ayarlari guncellendi');
+
+    // Botu yeniden baslat (token veya client_id degistiyse)
+    try {
+      logger.info('web', 'Bot yeniden baslatiliyor (ayarlar degisti)...');
+      const newClient = await bot.restartBot();
+      if (newClient) {
+        const { attachBotClient } = require('../server');
+        attachBotClient(newClient);
+        logger.info('web', 'Bot yeniden baslatildi ve route\'lara baglandi');
+      }
+    } catch (restartErr) {
+      logger.error('web', `Bot restart hatasi: ${restartErr.message}`);
+    }
+
     const updated = await queryOne('SELECT * FROM bot_settings WHERE id = 1');
     if (updated?.token) updated.token_masked = updated.token.substring(0, 10) + '***';
     res.json(updated);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== BOT RESTART ==========
+
+// POST /api/bot/restart
+router.post('/bot/restart', requireAuth, async (req, res) => {
+  try {
+    logger.info('web', 'Bot manuel yeniden baslatma istegi');
+    const newClient = await bot.restartBot();
+    if (newClient) {
+      const { attachBotClient } = require('../server');
+      attachBotClient(newClient);
+      logger.info('web', 'Bot yeniden baslatildi');
+      res.json({ success: true, message: 'Bot yeniden baslatildi' });
+    } else {
+      res.json({ success: false, error: 'Bot baslatılamadı - token kontrol edin' });
+    }
+  } catch (err) {
+    logger.error('web', `Bot restart hatasi: ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });
