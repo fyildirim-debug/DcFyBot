@@ -39,22 +39,6 @@ function checkWord(content, word, matchType) {
   }
 }
 
-function censorWord(content, word, matchType) {
-  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  let regex;
-  switch (matchType) {
-    case 'word':
-      regex = new RegExp(`\\b${escaped}\\b`, 'gi');
-      break;
-    case 'regex':
-      try { regex = new RegExp(word, 'gi'); } catch { return content; }
-      break;
-    default:
-      regex = new RegExp(escaped, 'gi');
-  }
-  return content.replace(regex, match => '*'.repeat(match.length));
-}
-
 module.exports = {
   name: 'messageCreate',
 
@@ -76,13 +60,13 @@ module.exports = {
         const remaining = Math.max(0, new Date(mute.expires_at).getTime() - Date.now());
         const remMin = Math.ceil(remaining / 60000);
         const remStr = remMin >= 60 ? `${Math.floor(remMin/60)} saat ${remMin%60} dakika` : `${remMin} dakika`;
+        // Sadece ona gorunen mesaj (reply + auto-delete)
         try {
-          await message.author.send(
-            `**${message.guild.name}** sunucusunda susturulmus durumdasiniz.\n` +
-            `**Kalan sure:** ${remStr}\n` +
-            `**Sebep:** ${mute.reason || 'Belirtilmedi'}\n` +
-            (mute.message ? `**Mesaj:** ${mute.message}` : '')
-          );
+          const warn = await message.channel.send({
+            content: `<@${message.author.id}> Susturulmus durumdasiniz. Kalan sure: **${remStr}**\nSebep: ${mute.reason || 'Belirtilmedi'}`,
+            allowedMentions: { users: [message.author.id] }
+          });
+          setTimeout(() => { try { warn.delete(); } catch {} }, 5000);
         } catch {}
         return;
       }
@@ -95,52 +79,36 @@ module.exports = {
         for (const f of filters) {
           if (!checkWord(message.content, f.word, f.match_type)) continue;
 
-          // Eslesen filtre bulundu
-          const warnMsg = f.warn_message || `Mesajiniz "${f.word}" yasakli kelimesi nedeniyle isleme alindi.`;
+          const warnMsg = f.warn_message || `Yasakli kelime kullanimi tespit edildi.`;
 
           switch (f.action) {
             case 'delete': {
-              // Mesaji sil + ephemeral uyari
               try { await message.delete(); } catch {}
               try {
-                const warn = await message.channel.send(`<@${message.author.id}> ${warnMsg}`);
+                const warn = await message.channel.send({
+                  content: `<@${message.author.id}> ${warnMsg}`,
+                  allowedMentions: { users: [message.author.id] }
+                });
                 setTimeout(() => { try { warn.delete(); } catch {} }, 5000);
               } catch {}
-              try { await message.author.send(`**${message.guild.name}** — ${warnMsg}`); } catch {}
               logger.info('bot', `Yasakli kelime (sil): "${f.word}" - ${message.author.username}`, { guildId: message.guildId });
               return;
             }
 
-            case 'censor': {
-              // Mesaji sil, sansurlu halini bot olarak gonder
-              const censored = censorWord(message.content, f.word, f.match_type);
-              try { await message.delete(); } catch {}
-              await message.channel.send(`**${message.member?.displayName || message.author.username}:** ${censored}`);
-              try { await message.author.send(`**${message.guild.name}** — Mesajinizdaki yasakli kelime sansürlendi.`); } catch {}
-              logger.info('bot', `Yasakli kelime (sansur): "${f.word}" - ${message.author.username}`, { guildId: message.guildId });
-              return;
-            }
-
             case 'warn': {
-              // Mesaji silme, sadece uyar
               try {
-                const warn = await message.reply(`⚠️ ${warnMsg}`);
+                const warn = await message.reply({ content: `${warnMsg}`, allowedMentions: { repliedUser: true } });
                 setTimeout(() => { try { warn.delete(); } catch {} }, 8000);
               } catch {}
-              try { await message.author.send(`**${message.guild.name}** — ${warnMsg}`); } catch {}
               logger.info('bot', `Yasakli kelime (uyari): "${f.word}" - ${message.author.username}`, { guildId: message.guildId });
-              break; // Devam et, mesaj silinmez
+              break;
             }
 
             case 'timeout': {
-              // Mesaji sil + kullaniciyi sustur
               const duration = (f.action_duration || 5) * 60 * 1000;
               try { await message.delete(); } catch {}
-              try {
-                await message.member.timeout(duration, `Yasakli kelime: ${f.word}`);
-              } catch {}
+              try { await message.member.timeout(duration, `Yasakli kelime: ${f.word}`); } catch {}
 
-              // DB'ye mute kaydi
               const expiresAt = new Date(Date.now() + duration);
               try {
                 await query('UPDATE mutes SET active = FALSE WHERE guild_id = $1 AND user_id = $2 AND active = TRUE', [message.guildId, message.author.id]);
@@ -152,23 +120,24 @@ module.exports = {
 
               const durStr = f.action_duration >= 60 ? `${Math.floor(f.action_duration/60)} saat` : `${f.action_duration || 5} dakika`;
               try {
-                const warn = await message.channel.send(`<@${message.author.id}> yasakli kelime kullanimi nedeniyle ${durStr} susturuldu.`);
+                const warn = await message.channel.send({
+                  content: `<@${message.author.id}> Yasakli kelime nedeniyle **${durStr}** susturuldunuz.`,
+                  allowedMentions: { users: [message.author.id] }
+                });
                 setTimeout(() => { try { warn.delete(); } catch {} }, 8000);
-              } catch {}
-              try {
-                await message.author.send(
-                  `**${message.guild.name}** — Yasakli kelime kullandiginiz icin ${durStr} susturuldunuz.\n**Kelime:** ||${f.word}||\n${warnMsg}`
-                );
               } catch {}
               logger.info('bot', `Yasakli kelime (timeout ${f.action_duration}dk): "${f.word}" - ${message.author.username}`, { guildId: message.guildId });
               return;
             }
 
             case 'kick': {
-              // Mesaji sil + kullaniciyi at
               try { await message.delete(); } catch {}
               try {
-                await message.author.send(`**${message.guild.name}** — Yasakli kelime kullandiginiz icin sunucudan atildiniz.\n**Kelime:** ||${f.word}||\n${warnMsg}`);
+                const warn = await message.channel.send({
+                  content: `<@${message.author.id}> Yasakli kelime nedeniyle sunucudan atildi.`,
+                  allowedMentions: { users: [message.author.id] }
+                });
+                setTimeout(() => { try { warn.delete(); } catch {} }, 8000);
               } catch {}
               try { await message.member.kick(`Yasakli kelime: ${f.word}`); } catch {}
               logger.info('bot', `Yasakli kelime (kick): "${f.word}" - ${message.author.username}`, { guildId: message.guildId });
@@ -176,10 +145,13 @@ module.exports = {
             }
 
             case 'ban': {
-              // Mesaji sil + kullaniciyi yasakla
               try { await message.delete(); } catch {}
               try {
-                await message.author.send(`**${message.guild.name}** — Yasakli kelime kullandiginiz icin sunucudan yasaklandiniz.\n**Kelime:** ||${f.word}||\n${warnMsg}`);
+                const warn = await message.channel.send({
+                  content: `<@${message.author.id}> Yasakli kelime nedeniyle sunucudan yasaklandi.`,
+                  allowedMentions: { users: [message.author.id] }
+                });
+                setTimeout(() => { try { warn.delete(); } catch {} }, 8000);
               } catch {}
               try { await message.member.ban({ reason: `Yasakli kelime: ${f.word}` }); } catch {}
               logger.info('bot', `Yasakli kelime (ban): "${f.word}" - ${message.author.username}`, { guildId: message.guildId });

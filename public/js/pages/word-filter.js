@@ -1,9 +1,9 @@
 const WF_ACTION_LABELS = {
-  delete: 'Mesaji Sil', censor: 'Sansurle (****)', warn: 'Uyar',
+  delete: 'Mesaji Sil', warn: 'Uyar',
   timeout: 'Sustur + Sil', kick: 'At + Sil', ban: 'Yasakla + Sil'
 };
 const WF_ACTION_COLORS = {
-  delete: 'danger', censor: 'warning', warn: 'info',
+  delete: 'danger', warn: 'info',
   timeout: 'danger', kick: 'danger', ban: 'danger'
 };
 const WF_MATCH_LABELS = {
@@ -56,7 +56,6 @@ async function renderWordFilter() {
                 <label class="form-label">Islem</label>
                 <select class="form-select" id="wfAction" onchange="onWfActionChange2()">
                   <option value="delete">Mesaji Sil</option>
-                  <option value="censor">Sansurle (****)</option>
                   <option value="warn">Uyar (silmeden)</option>
                   <option value="timeout">Sustur + Sil</option>
                   <option value="kick">Sunucudan At + Sil</option>
@@ -131,14 +130,14 @@ async function renderWordFilter() {
           <div class="guide-step">
             <div class="guide-step-num">3</div>
             <div class="guide-step-title">Islem Belirle</div>
-            <div class="guide-step-desc"><strong>Sil:</strong> mesaj silinir<br><strong>Sansurle:</strong> kelime **** olur<br><strong>Uyar:</strong> mesaj kalir, uyari verilir<br><strong>Sustur:</strong> kullanici susturulur<br><strong>At/Yasakla:</strong> agir islem</div>
+            <div class="guide-step-desc"><strong>Sil:</strong> mesaj silinir + uyari<br><strong>Uyar:</strong> mesaj kalir, uyari verilir<br><strong>Sustur:</strong> mesaj silinir + kullanici susturulur<br><strong>At/Yasakla:</strong> mesaj silinir + agir islem</div>
           </div>
 
           <div class="guide-info-box">
             <div class="guide-info-box-title">${svgIcon('warning')} Bilgi</div>
             <div class="guide-info-item">Yoneticiler filtreden muaftir</div>
             <div class="guide-info-item">Her islemde kullaniciya DM gonderilir</div>
-            <div class="guide-info-item">Sansurlemede bot mesaji yeniden gonderir</div>
+            <div class="guide-info-item">Uyarilar sadece kullaniciya gorunur (auto-delete)</div>
             <div class="guide-info-item">Filtre 60sn cache ile performanslidir</div>
           </div>
         </div>

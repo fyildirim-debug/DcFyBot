@@ -247,5 +247,41 @@ router.post('/:guildId/:userId/unmute', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/members/:guildId/bans - Yasakli uyeler
+router.get('/:guildId/bans', requireAuth, async (req, res) => {
+  try {
+    const guild = getGuild(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    const bans = await guild.bans.fetch();
+    const list = [...bans.values()].map(b => ({
+      id: b.user.id,
+      username: b.user.username,
+      displayName: b.user.displayName || b.user.username,
+      avatar: b.user.displayAvatarURL({ size: 64 }),
+      reason: b.reason || '',
+      bot: b.user.bot
+    }));
+
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/members/:guildId/:userId/unban - Yasagi kaldir
+router.post('/:guildId/:userId/unban', requireAuth, async (req, res) => {
+  try {
+    const guild = getGuild(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    await guild.members.unban(req.params.userId);
+    logger.info('web', `Yasak kaldirildi: ${req.params.userId} (${guild.name})`, { guildId: guild.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
 module.exports.setBotClient = setBotClient;

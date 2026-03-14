@@ -142,8 +142,67 @@ async function renderMembers() {
           </table>
         </div>
       </div>
+
+      <!-- Yasakli Uyeler -->
+      <div class="section-title" style="margin-top:28px">Yasakli Uyeler</div>
+      <div id="bannedList"><div class="spinner"></div></div>
     `;
+
+    // Yasakli uyeleri yukle
+    loadBannedMembers();
   } catch(e) { document.querySelector('.main-content').innerHTML = `<div class="alert alert-danger">${e.message}</div>`; }
+}
+
+async function loadBannedMembers() {
+  const guildId = localStorage.getItem('selectedGuild');
+  const container = document.getElementById('bannedList');
+  if (!container || !guildId) return;
+
+  try {
+    const bans = await API.get(`/api/members/${guildId}/bans`);
+    const list = Array.isArray(bans) ? bans : [];
+
+    if (list.length === 0) {
+      container.innerHTML = '<div class="card"><div class="empty-state" style="padding:24px">Yasakli uye yok</div></div>';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="card card-flush">
+        <div class="table-wrap" style="max-height:400px;overflow-y:auto">
+          <table>
+            <thead><tr>
+              <th>Kullanici</th>
+              <th>Sebep</th>
+              <th style="text-align:right">Islem</th>
+            </tr></thead>
+            <tbody>
+              ${list.map(b => `
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <img src="${b.avatar}" class="avatar" alt="" />
+                      <div>
+                        <strong>${b.username}</strong>
+                        ${b.bot ? '<span class="badge badge-info" style="font-size:9px;margin-left:4px">BOT</span>' : ''}
+                        <div class="mono" style="font-size:10px;color:var(--text-muted)">${b.id}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="font-size:13px;color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.reason || '<em>Sebep belirtilmemis</em>'}</td>
+                  <td style="text-align:right">
+                    <button class="btn btn-success btn-xs" onclick="unbanMember('${b.id}','${b.username.replace(/'/g,"\\'")}')">${I18n.t('members.unban')}</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    container.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+  }
 }
 
 function editMember(id, username, nickname, currentRoleIds) {
@@ -234,6 +293,16 @@ async function unmuteMember(userId) {
     await API.post(`/api/members/${guildId}/${userId}/unmute`);
     showToast('Susturma kaldirildi');
     renderMembers();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function unbanMember(userId, username) {
+  if (!confirm(`${username} adli uyenin yasagini kaldirmak istediginize emin misiniz?`)) return;
+  const guildId = localStorage.getItem('selectedGuild');
+  try {
+    await API.post(`/api/members/${guildId}/${userId}/unban`);
+    showToast('Yasak kaldirildi');
+    loadBannedMembers();
   } catch(e) { showToast(e.message, 'error'); }
 }
 
