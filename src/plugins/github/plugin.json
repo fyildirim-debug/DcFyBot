@@ -1,0 +1,11 @@
+{
+  "name": "github",
+  "version": "1.0.0",
+  "description": "GitHub commit ve event takibi",
+  "author": "FyDCBot",
+  "config": {
+    "webhook_secret": "",
+    "channel_id": "",
+    "repos": []
+  }
+}

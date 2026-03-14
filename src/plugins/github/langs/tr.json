@@ -1,0 +1,7 @@
+{
+  "title": "GitHub Entegrasyonu",
+  "description": "GitHub commit, PR ve issue bildirimlerini Discord'a gonderir",
+  "webhookSecret": "Webhook Sifresi",
+  "channelId": "Bildirim Kanali",
+  "repos": "Takip Edilen Repolar"
+}

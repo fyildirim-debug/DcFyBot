@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fydcbot
+      POSTGRES_PASSWORD: fydcbot123
+      POSTGRES_DB: fydcbot
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fydcbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://fydcbot:fydcbot123@db:5432/fydcbot
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:-fydcbot-docker-secret-change-me}
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  pgdata:

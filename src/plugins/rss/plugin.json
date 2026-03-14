@@ -1,0 +1,11 @@
+{
+  "name": "rss",
+  "version": "1.0.0",
+  "description": "RSS feed takibi ve bildirimi",
+  "author": "FyDCBot",
+  "config": {
+    "feeds": [],
+    "channel_id": "",
+    "check_interval": 300
+  }
+}

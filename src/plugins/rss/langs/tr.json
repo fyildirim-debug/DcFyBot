@@ -1,0 +1,7 @@
+{
+  "title": "RSS Feed Takibi",
+  "description": "RSS feed'lerini takip eder ve yeni icerikleri Discord'a bildirir",
+  "feeds": "Feed URL'leri",
+  "channelId": "Bildirim Kanali",
+  "checkInterval": "Kontrol Araligi (saniye)"
+}

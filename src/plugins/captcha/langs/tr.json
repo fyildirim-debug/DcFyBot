@@ -1,0 +1,8 @@
+{
+  "title": "Captcha Dogrulama",
+  "description": "Yeni uyelere captcha dogrulama sistemi uygular",
+  "verifiedRoleId": "Dogrulanmis Rolu",
+  "verificationChannelId": "Dogrulama Kanali",
+  "captchaLength": "Captcha Uzunlugu",
+  "timeoutMinutes": "Zaman Asimi (dakika)"
+}

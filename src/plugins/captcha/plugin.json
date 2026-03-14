@@ -1,0 +1,12 @@
+{
+  "name": "captcha",
+  "version": "1.0.0",
+  "description": "Captcha ile uye dogrulama sistemi",
+  "author": "FyDCBot",
+  "config": {
+    "verified_role_id": "",
+    "verification_channel_id": "",
+    "captcha_length": 6,
+    "timeout_minutes": 5
+  }
+}

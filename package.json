@@ -1,0 +1,29 @@
+{
+  "name": "fydcbot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI destekli Discord bot - Web yonetim paneli, plugin sistemi, Docker uyumlu",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:build": "docker-compose build"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "@anthropic-ai/sdk": "^0.39.0",
+    "openai": "^4.77.0",
+    "express": "^4.21.1",
+    "pg": "^8.13.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.4.7",
+    "multer": "^1.4.5-lts.1",
+    "cors": "^2.8.5",
+    "cookie-parser": "^1.4.7",
+    "rss-parser": "^3.13.0"
+  }
+}
