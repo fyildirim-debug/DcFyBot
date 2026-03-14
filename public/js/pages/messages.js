@@ -230,7 +230,16 @@ async function loadMessages(channelId, append = false) {
     if (!append) container.scrollTop = container.scrollHeight;
 
     if (data.messages.length === 0 && !append) {
-      container.innerHTML = '<div class="empty-state">Bu kanalda mesaj yok</div>';
+      container.innerHTML = `
+        <div class="empty-state">Bu kanalda mesaj yok</div>
+        <div class="msg-send-bar">
+          <form onsubmit="sendMessage(event,'${channelId}')" style="display:flex;gap:8px;padding:12px 0">
+            <input class="form-input" id="msgSendInput" placeholder="Bot olarak mesaj gonder..." autocomplete="off" style="flex:1" />
+            <button type="submit" class="btn btn-primary btn-sm">Gonder</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAICompose('${channelId}')">${svgIcon('cpu')} AI</button>
+          </form>
+        </div>
+      `;
     }
   } catch(e) {
     container.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
