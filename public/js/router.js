@@ -102,6 +102,7 @@ function renderLayout(content, activePage) {
 
           <div class="nav-section"><span class="nav-section-label">Sunucu Ayarlari</span></div>
           ${navItem('/server-settings', 'serverSettings', 'server', activePage)}
+          ${navItem('/word-filter', 'wordFilter', 'shield', activePage)}
           ${navItem('/ai-setup', 'aiSetup', 'cpu', activePage)}
 
           <div class="nav-section"><span class="nav-section-label">${I18n.t('common.settings') || 'Ayarlar'}</span></div>
@@ -117,6 +118,7 @@ function renderLayout(content, activePage) {
           <div class="nav-section"><span class="nav-section-label">${I18n.t('common.actions') || 'Sistem'}</span></div>
           ${navItem('/backup', 'backup', 'archive', activePage)}
           ${navItem('/logs', 'logs', 'list', activePage)}
+          ${navItem('/versions', 'versions', 'archive', activePage)}
           ${navItem('/system', 'system', 'server', activePage)}
         </nav>
 

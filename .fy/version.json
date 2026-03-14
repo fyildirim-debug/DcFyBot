@@ -1,6 +1,7 @@
 {
-  "version": "1.2.4.1",
+  "version": "1.2.5.0",
   "history": [
+    { "version": "1.2.5.0", "date": "2026-03-15", "summary": "Yasakli kelimeler ayri sayfa + rehber, Versiyonlar sayfasi (GitHub fetch + guncelleme kontrolu), repo public yapildi" },
     { "version": "1.2.4.1", "date": "2026-03-15", "summary": "AI islemleri timeout hatasi duzeltildi (Failed to fetch), backend 10dk + frontend AbortController" },
     { "version": "1.2.4.0", "date": "2026-03-15", "summary": "Yasakli kelime filtresi: 6 islem (sil/sansurle/uyar/sustur/at/yasakla), 6 eslesme tipi, ozel uyari mesaji, yonetici muaf" },
     { "version": "1.2.3.2", "date": "2026-03-15", "summary": "Sidebar logo ve baslik secili sunucuya gore degisiyor" },

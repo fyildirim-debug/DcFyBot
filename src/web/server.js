@@ -41,12 +41,14 @@ function createServer() {
   app.use('/api/wordfilter', require('./routes/wordfilter'));
   app.use('/api/backup', require('./routes/backup'));
 
-  // Versiyon endpoint
+  // Versiyon endpoint (yerel)
   app.get('/api/version', (req, res) => {
     try {
+      // Cache temizle - her zaman gunceli oku
+      delete require.cache[require.resolve('../../.fy/version.json')];
       const v = require('../../.fy/version.json');
-      res.json({ version: v.version });
-    } catch { res.json({ version: '1.2.0.0' }); }
+      res.json({ version: v.version, history: v.history });
+    } catch { res.json({ version: '0.0.0.0' }); }
   });
 
   // Plugin web registry endpoint

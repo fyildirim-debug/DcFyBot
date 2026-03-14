@@ -111,58 +111,6 @@ async function renderServerSettings() {
           </div>
         </div>
 
-          <!-- Yasakli Kelimeler -->
-          <div class="section-title">Yasakli Kelimeler</div>
-          <div class="card">
-            <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Mesajlarda tespit edilen yasakli kelimelere otomatik islem uygulanir. Yoneticiler filtreden muaftir.</p>
-
-            <!-- Ekleme Formu -->
-            <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px">
-              <div class="form-grid">
-                <div class="form-group" style="margin-bottom:8px">
-                  <label class="form-label">Kelime / Ifade</label>
-                  <input class="form-input" id="wfWord" placeholder="yasakli kelime..." />
-                </div>
-                <div class="form-group" style="margin-bottom:8px">
-                  <label class="form-label">Eslesme Tipi</label>
-                  <select class="form-select" id="wfMatchType">
-                    <option value="contains">Iceriyor</option>
-                    <option value="word">Tam Kelime</option>
-                    <option value="exact">Tam Eslesme</option>
-                    <option value="startswith">Ile Basliyor</option>
-                    <option value="endswith">Ile Bitiyor</option>
-                    <option value="regex">Regex</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-grid">
-                <div class="form-group" style="margin-bottom:8px">
-                  <label class="form-label">Islem</label>
-                  <select class="form-select" id="wfAction" onchange="onWfActionChange()">
-                    <option value="delete">Mesaji Sil</option>
-                    <option value="censor">Sansurle (****)</option>
-                    <option value="warn">Uyar (silme)</option>
-                    <option value="timeout">Sustur + Sil</option>
-                    <option value="kick">At + Sil</option>
-                    <option value="ban">Yasakla + Sil</option>
-                  </select>
-                </div>
-                <div class="form-group" style="margin-bottom:8px" id="wfDurationGroup" style="display:none">
-                  <label class="form-label">Susturma Suresi (dk)</label>
-                  <input class="form-input mono" type="number" id="wfDuration" value="5" min="1" max="40320" />
-                </div>
-              </div>
-              <div class="form-group" style="margin-bottom:8px">
-                <label class="form-label">Uyari Mesaji (kullaniciya gosterilir)</label>
-                <input class="form-input" id="wfWarnMsg" placeholder="Bu kelimeyi kullanamazsiniz..." />
-              </div>
-              <button class="btn btn-primary btn-sm" onclick="addWordFilter()">Ekle</button>
-            </div>
-
-            <!-- Liste -->
-            <div id="wordFilterList"><div class="spinner"></div></div>
-          </div>
-
         <!-- Sag: Sunucu Detaylari -->
         <div class="guide-panel">
           <div class="guide-panel-title">
@@ -214,9 +162,6 @@ async function renderServerSettings() {
         </div>
       </div>
     `;
-    // Yasakli kelimeleri yukle
-    loadWordFilters();
-    onWfActionChange();
   } catch(e) { document.querySelector('.main-content').innerHTML = `<div class="alert alert-danger">${e.message}</div>`; }
 }
 
@@ -254,100 +199,6 @@ async function createServerInvite() {
     const res = await API.post(`/api/guilds/${guildId}/invite/create`, {});
     showToast('Davet olusturuldu: ' + res.url);
     renderServerSettings();
-  } catch(e) { showToast(e.message, 'error'); }
-}
-
-// ===== YASAKLI KELIMELER =====
-const ACTION_LABELS = {
-  delete: 'Sil', censor: 'Sansurle', warn: 'Uyar',
-  timeout: 'Sustur', kick: 'At', ban: 'Yasakla'
-};
-const ACTION_COLORS = {
-  delete: 'danger', censor: 'warning', warn: 'info',
-  timeout: 'danger', kick: 'danger', ban: 'danger'
-};
-const MATCH_LABELS = {
-  contains: 'Iceriyor', word: 'Tam Kelime', exact: 'Tam Eslesme',
-  startswith: 'Basliyor', endswith: 'Bitiyor', regex: 'Regex'
-};
-
-function onWfActionChange() {
-  const action = document.getElementById('wfAction')?.value;
-  const durGroup = document.getElementById('wfDurationGroup');
-  if (durGroup) durGroup.style.display = action === 'timeout' ? 'block' : 'none';
-}
-
-async function loadWordFilters() {
-  const guildId = localStorage.getItem('selectedGuild');
-  const container = document.getElementById('wordFilterList');
-  if (!container || !guildId) return;
-
-  try {
-    const filters = await API.get(`/api/wordfilter/${guildId}`);
-    if (!filters.length) {
-      container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Henuz yasakli kelime eklenmedi</div>';
-      return;
-    }
-
-    container.innerHTML = `<div class="table-wrap"><table>
-      <thead><tr><th>Kelime</th><th>Eslesme</th><th>Islem</th><th>Durum</th><th style="text-align:right">Islemler</th></tr></thead>
-      <tbody>
-        ${filters.map(f => `<tr${!f.enabled?' style="opacity:0.5"':''}>
-          <td><strong class="mono">${f.word}</strong></td>
-          <td><span class="badge badge-neutral" style="font-size:10px">${MATCH_LABELS[f.match_type] || f.match_type}</span></td>
-          <td>
-            <span class="badge badge-${ACTION_COLORS[f.action]}" style="font-size:10px">${ACTION_LABELS[f.action] || f.action}</span>
-            ${f.action === 'timeout' && f.action_duration ? `<span class="mono" style="font-size:10px;color:var(--text-muted)"> ${f.action_duration}dk</span>` : ''}
-          </td>
-          <td>
-            <button class="toggle ${f.enabled?'active':''}" onclick="toggleWordFilter(${f.id},${!f.enabled})" style="transform:scale(0.8)"></button>
-          </td>
-          <td style="text-align:right">
-            <button class="btn btn-danger btn-xs" onclick="deleteWordFilter(${f.id})">Sil</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>`;
-  } catch (e) {
-    container.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
-  }
-}
-
-async function addWordFilter() {
-  const guildId = localStorage.getItem('selectedGuild');
-  const word = document.getElementById('wfWord')?.value?.trim();
-  if (!word) { showToast('Kelime bos olamaz', 'error'); return; }
-
-  try {
-    await API.post(`/api/wordfilter/${guildId}`, {
-      word,
-      match_type: document.getElementById('wfMatchType').value,
-      action: document.getElementById('wfAction').value,
-      action_duration: parseInt(document.getElementById('wfDuration')?.value) || 5,
-      warn_message: document.getElementById('wfWarnMsg')?.value || ''
-    });
-    document.getElementById('wfWord').value = '';
-    document.getElementById('wfWarnMsg').value = '';
-    showToast('Yasakli kelime eklendi');
-    loadWordFilters();
-  } catch(e) { showToast(e.message, 'error'); }
-}
-
-async function toggleWordFilter(id, enabled) {
-  const guildId = localStorage.getItem('selectedGuild');
-  try {
-    await API.put(`/api/wordfilter/${guildId}/${id}`, { enabled });
-    loadWordFilters();
-  } catch(e) { showToast(e.message, 'error'); }
-}
-
-async function deleteWordFilter(id) {
-  if (!confirm('Bu yasakli kelimeyi silmek istediginize emin misiniz?')) return;
-  const guildId = localStorage.getItem('selectedGuild');
-  try {
-    await API.del(`/api/wordfilter/${guildId}/${id}`);
-    showToast('Yasakli kelime silindi');
-    loadWordFilters();
   } catch(e) { showToast(e.message, 'error'); }
 }
 

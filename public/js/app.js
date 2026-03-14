@@ -33,7 +33,9 @@ const App = {
     Router.register('/backup', () => renderBackup());
     Router.register('/logs', () => renderLogs());
     Router.register('/server-settings', () => renderServerSettings());
+    Router.register('/word-filter', () => renderWordFilter());
     Router.register('/ai-setup', () => renderAISetup());
+    Router.register('/versions', () => renderVersions());
     Router.register('/system', () => renderSystem());
 
     Router.register('/', () => App.checkAndRedirect());

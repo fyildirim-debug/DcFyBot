@@ -91,7 +91,9 @@
     "system": "System",
     "messages": "Messages",
     "serverSettings": "Server Details",
-    "aiSetup": "AI Server Setup"
+    "wordFilter": "Word Filter",
+    "aiSetup": "AI Server Setup",
+    "versions": "Versions"
   },
   "dashboard": {
     "title": "Dashboard",

@@ -91,7 +91,9 @@
     "system": "Sistem",
     "messages": "Mesajlar",
     "serverSettings": "Sunucu Detaylari",
-    "aiSetup": "AI Sunucu Kur"
+    "wordFilter": "Yasakli Kelimeler",
+    "aiSetup": "AI Sunucu Kur",
+    "versions": "Versiyonlar"
   },
   "dashboard": {
     "title": "Kontrol Paneli",
