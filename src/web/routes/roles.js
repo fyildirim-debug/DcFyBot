@@ -144,21 +144,21 @@ router.post('/:guildId/ai-create', requireAuth, async (req, res) => {
 
     const existing = guild.roles.cache.map(r => r.name).join(', ');
 
-    const systemPrompt = `Sen bir Discord sunucu yoneticisisin. Kullanicinin istegine gore rol yapisi olusturacaksin.
+    const systemPrompt = `Sen bir Discord rol olusturucususun. Kullanicinin istegine gore TEK BIR rol olusturacaksin.
 Mevcut roller: ${existing}
 
-SADECE JSON dizisi dondur. Her eleman:
+SADECE tek bir JSON objesi dondur (dizi degil):
 {
   "name": "Rol Adi",
   "color": "#hex-renk",
   "hoist": true/false,
   "mentionable": true/false,
-  "permissions": ["ViewChannel","SendMessages","Connect","Speak","ReadMessageHistory","AddReactions","UseApplicationCommands"]
+  "permissions": ["ViewChannel","SendMessages"]
 }
 
-Kullanilabilir izinler: Administrator, ViewChannel, ManageChannels, ManageRoles, ManageGuild, KickMembers, BanMembers, ModerateMembers, CreateInstantInvite, ChangeNickname, ManageNicknames, ManageWebhooks, ManageEmojisAndStickers, ViewAuditLog, SendMessages, SendMessagesInThreads, CreatePublicThreads, CreatePrivateThreads, EmbedLinks, AttachFiles, AddReactions, UseExternalEmojis, UseExternalStickers, ReadMessageHistory, ManageMessages, ManageThreads, UseApplicationCommands, SendTTSMessages, MentionEveryone, Connect, Speak, Stream, UseVAD, PrioritySpeaker, MuteMembers, DeafenMembers, MoveMembers, UseEmbeddedActivities
+Kullanilabilir izinler: Administrator, ViewChannel, ManageChannels, ManageRoles, ManageGuild, KickMembers, BanMembers, ModerateMembers, CreateInstantInvite, ChangeNickname, ManageNicknames, ManageWebhooks, ViewAuditLog, SendMessages, EmbedLinks, AttachFiles, AddReactions, UseExternalEmojis, ReadMessageHistory, ManageMessages, UseApplicationCommands, MentionEveryone, Connect, Speak, Stream, MuteMembers, DeafenMembers, MoveMembers
 
-Rolleri hiyerarsik sirala (en yetkili uste). Mantikli renkler sec.`;
+Sadece 1 rol dondur.`;
 
     const result = await structuredChat(systemPrompt, prompt, guild.id);
     if (!result.success) return res.json(result);

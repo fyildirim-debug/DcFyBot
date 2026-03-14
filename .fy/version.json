@@ -1,6 +1,8 @@
 {
-  "version": "1.2.5.0",
+  "version": "1.2.7.0",
   "history": [
+    { "version": "1.2.7.0", "date": "2026-03-15", "summary": "Kanal izin yonetimi (rol bazli allow/deny/neutral toggle), AI tekil kanal/rol olusturma, yasakli uyeler listesi + unban" },
+    { "version": "1.2.6.0", "date": "2026-03-15", "summary": "Sansur kaldirildi, ephemeral uyarilar (auto-delete), yasakli uyeler bolumu" },
     { "version": "1.2.5.0", "date": "2026-03-15", "summary": "Yasakli kelimeler ayri sayfa + rehber, Versiyonlar sayfasi (GitHub fetch + guncelleme kontrolu), repo public yapildi" },
     { "version": "1.2.4.1", "date": "2026-03-15", "summary": "AI islemleri timeout hatasi duzeltildi (Failed to fetch), backend 10dk + frontend AbortController" },
     { "version": "1.2.4.0", "date": "2026-03-15", "summary": "Yasakli kelime filtresi: 6 islem (sil/sansurle/uyar/sustur/at/yasakla), 6 eslesme tipi, ozel uyari mesaji, yonetici muaf" },

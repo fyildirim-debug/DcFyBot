@@ -129,6 +129,95 @@ router.delete('/:guildId', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/channels/:guildId/:channelId/permissions - Kanal izinleri
+router.get('/:guildId/:channelId/permissions', requireAuth, async (req, res) => {
+  try {
+    const guild = getGuild(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    const channel = guild.channels.cache.get(req.params.channelId);
+    if (!channel) return res.status(404).json({ error: 'Kanal bulunamadi' });
+
+    const overwrites = channel.permissionOverwrites.cache.map(o => {
+      const target = o.type === 0
+        ? guild.roles.cache.get(o.id)
+        : guild.members.cache.get(o.id);
+
+      return {
+        id: o.id,
+        type: o.type, // 0=role, 1=member
+        name: o.type === 0 ? (target?.name || o.id) : (target?.user?.username || o.id),
+        color: o.type === 0 ? (target?.hexColor || '#666') : null,
+        allow: o.allow.toArray(),
+        deny: o.deny.toArray()
+      };
+    });
+
+    // Mevcut roller listesi (eklemek icin)
+    const roles = guild.roles.cache
+      .filter(r => r.id !== guild.id) // @everyone haric goster ama ekleme icin
+      .map(r => ({ id: r.id, name: r.name, color: r.hexColor }))
+      .sort((a, b) => b.position - a.position);
+
+    // @everyone'i ayri ekle
+    const everyone = guild.roles.cache.get(guild.id);
+    roles.push({ id: everyone.id, name: '@everyone', color: '#666' });
+
+    res.json({ overwrites, roles });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/channels/:guildId/:channelId/permissions - Kanal izni ayarla
+router.put('/:guildId/:channelId/permissions', requireAuth, async (req, res) => {
+  try {
+    const guild = getGuild(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    const channel = guild.channels.cache.get(req.params.channelId);
+    if (!channel) return res.status(404).json({ error: 'Kanal bulunamadi' });
+
+    const { targetId, targetType, allow, deny } = req.body;
+    // targetType: 0=role, 1=member
+
+    const { PermissionsBitField } = require('discord.js');
+    const overwrite = {};
+
+    for (const p of (allow || [])) {
+      if (PermissionsBitField.Flags[p]) overwrite[p] = true;
+    }
+    for (const p of (deny || [])) {
+      if (PermissionsBitField.Flags[p]) overwrite[p] = false;
+    }
+
+    await channel.permissionOverwrites.edit(targetId, overwrite, { type: targetType });
+
+    logger.info('web', `Kanal izni guncellendi: ${channel.name} - ${targetId}`, { guildId: guild.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/channels/:guildId/:channelId/permissions/:targetId - Kanal iznini kaldir
+router.delete('/:guildId/:channelId/permissions/:targetId', requireAuth, async (req, res) => {
+  try {
+    const guild = getGuild(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });
+
+    const channel = guild.channels.cache.get(req.params.channelId);
+    if (!channel) return res.status(404).json({ error: 'Kanal bulunamadi' });
+
+    await channel.permissionOverwrites.delete(req.params.targetId);
+
+    logger.info('web', `Kanal izni kaldirildi: ${channel.name} - ${req.params.targetId}`, { guildId: guild.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /api/channels/:guildId/reorder - Kanal siralamasini guncelle (ONCEKI: parametre yakalamadan once)
 router.put('/:guildId/reorder', requireAuth, async (req, res) => {
   try {
@@ -199,22 +288,22 @@ router.post('/:guildId/ai-create', requireAuth, async (req, res) => {
     const existing = guild.channels.cache.map(c => `${c.name} (tip:${c.type})`).join(', ');
     const roles = guild.roles.cache.map(r => `${r.name} (id:${r.id})`).join(', ');
 
-    const systemPrompt = `Sen bir Discord sunucu mimarisisin. Kullanicinin istegine gore kanal yapisi olusturacaksin.
+    const systemPrompt = `Sen bir Discord kanal olusturucususun. Kullanicinin istegine gore TEK BIR kanal olusturacaksin.
 Mevcut kanallar: ${existing}
 Mevcut roller: ${roles}
 
-SADECE JSON dizisi dondur, baska bir sey yazma. Her eleman:
+SADECE tek bir JSON objesi dondur (dizi degil), baska bir sey yazma:
 {
   "name": "kanal-adi",
   "type": "text|voice|category|announcement",
-  "topic": "kanal aciklamasi (opsiyonel)",
-  "parent": "ust-kategori-adi (opsiyonel, category tipindeki bir kanalin name'i)",
+  "topic": "kanal aciklamasi",
+  "parent": "mevcut-kategori-adi (opsiyonel)",
   "nsfw": false,
   "permissions": [
-    {"role": "rol-adi-veya-id", "allow": ["ViewChannel","SendMessages"], "deny": ["ManageMessages"]}
+    {"role": "rol-adi", "allow": ["ViewChannel","SendMessages"], "deny": []}
   ]
 }
-Kategori kanallari once, alt kanallar sonra gelsin. Turkce karakter kullanma, kucuk harf ve tire kullan.`;
+Turkce karakter kullanma, kucuk harf ve tire kullan. Sadece 1 kanal dondur.`;
 
     const result = await structuredChat(systemPrompt, prompt, guild.id);
     if (!result.success) return res.json(result);

@@ -185,9 +185,9 @@ async function renderRoles() {
       <div id="aiRoleForm" style="display:none" class="card">
         <div class="card-title" style="margin-bottom:14px">${svgIcon('cpu')} AI ile Rol Olustur</div>
         <div class="form-group">
-          <label class="form-label">Ne tur roller istiyorsunuz?</label>
-          <textarea class="form-textarea" id="aiRolePrompt" rows="3" placeholder="Ornek: Bir topluluk sunucusu icin roller olustur. Kurucu, yonetici, moderator, VIP uye ve normal uye rolleri olsun. Her birinin yetkileri uygun sekilde ayarlansin."></textarea>
-          <p class="form-hint">Rollerin yetkilerini, renklerini ve hiyerarsisini detayli anlatabilirsiniz.</p>
+          <label class="form-label">Nasil bir rol istiyorsunuz?</label>
+          <textarea class="form-textarea" id="aiRolePrompt" rows="2" placeholder="Ornek: Moderator rolu olustur, mesajlari yonetebilsin, uyeleri susturabilsin ama yasaklayamasin."></textarea>
+          <p class="form-hint">AI tek bir rol olusturur. Toplu roller icin "AI Sunucu Kur" kullanin.</p>
         </div>
         <div class="btn-group">
           <button class="btn btn-primary btn-sm" id="aiRoleBtn" onclick="aiCreateRoles()">${svgIcon('cpu')} Olustur</button>
