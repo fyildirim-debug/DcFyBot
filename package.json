@@ -1,8 +1,15 @@
 {
-  "name": "fydcbot",
-  "version": "1.0.0",
-  "private": true,
-  "description": "AI destekli Discord bot - Web yonetim paneli, plugin sistemi, Docker uyumlu",
+  "name": "dcfybot",
+  "version": "1.2.5.0",
+  "description": "AI-Powered Discord Bot with Web Management Panel - Channel, Role, Member management, Word Filter, Plugin System, Docker Ready",
+  "keywords": ["discord", "discord-bot", "ai", "web-panel", "dashboard", "management", "moderation", "anthropic", "openai", "claude", "docker", "postgresql", "plugin-system", "word-filter", "auto-moderation"],
+  "author": "Furkan YILDIRIM <posta@furkanyildirim.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/fyildirim-debug/DcFyBot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fyildirim-debug/DcFyBot.git"
+  },
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
