@@ -13,6 +13,7 @@ async function renderDashboard() {
     document.querySelector('.main-content').innerHTML = `
       <div class="page-header">
         <h1 class="page-title">${I18n.t('dashboard.title')}</h1>
+        <button class="btn btn-danger btn-sm" onclick="resetDatabase()">${I18n.t('common.reset')} DB</button>
         <span class="badge ${stats.botOnline ? 'badge-success' : 'badge-danger'}">
           <span class="badge-dot ${stats.botOnline ? 'online' : 'offline'}"></span>
           ${stats.botOnline ? I18n.t('dashboard.online') : I18n.t('dashboard.offline')}
@@ -81,5 +82,30 @@ async function renderDashboard() {
     `;
   } catch (e) {
     document.querySelector('.main-content').innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+  }
+}
+
+async function resetDatabase() {
+  if (!confirm('TUM VERITABANI SIFIRLANACAK!\n\nTum ayarlar, loglar, yedekler silinecek.\nKurulum ekranina yonlendirileceksiniz.\n\nDevam etmek istiyor musunuz?')) return;
+
+  const input = prompt('Onaylamak icin SIFIRLA yazin:');
+  if (input !== 'SIFIRLA') {
+    alert('Sifirlama iptal edildi.');
+    return;
+  }
+
+  try {
+    const res = await API.post('/api/settings/reset', { confirm: 'SIFIRLA' });
+    if (res.success) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('selectedGuild');
+      alert('Veritabani sifirlandi. Kurulum ekranina yonlendiriliyorsunuz.');
+      window.location.href = '/';
+    } else {
+      alert('Hata: ' + (res.error || 'Bilinmeyen hata'));
+    }
+  } catch (e) {
+    alert('Sifirlama hatasi: ' + e.message);
   }
 }

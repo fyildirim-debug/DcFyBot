@@ -150,4 +150,42 @@ router.put('/bot', requireAuth, async (req, res) => {
   }
 });
 
+// ========== VERITABANI SIFIRLA ==========
+
+// POST /api/settings/reset - Her seyi sil, kuruluma dondur
+router.post('/reset', requireAuth, async (req, res) => {
+  try {
+    const { confirm } = req.body;
+    if (confirm !== 'SIFIRLA') {
+      return res.status(400).json({ error: 'Onay gerekli: confirm = "SIFIRLA"' });
+    }
+
+    logger.warn('web', 'VERITABANI SIFIRLANIYOR - tum veriler siliniyor');
+
+    // Tum tablolari temizle
+    await query('DELETE FROM logs');
+    await query('DELETE FROM stats');
+    await query('DELETE FROM plugin_settings');
+    await query('DELETE FROM api_keys');
+    await query('DELETE FROM channel_backups');
+    await query('DELETE FROM role_backups');
+    await query('DELETE FROM guilds');
+    await query('DELETE FROM admin_users');
+    await query('DELETE FROM system_settings');
+
+    // AI ve Bot ayarlarini varsayilana dondur
+    await query('DELETE FROM ai_settings');
+    await query('DELETE FROM bot_settings');
+    await query('INSERT INTO ai_settings DEFAULT VALUES');
+    await query('INSERT INTO bot_settings DEFAULT VALUES');
+
+    logger.warn('web', 'Veritabani sifirlandi, kuruluma yonlendiriliyor');
+
+    res.json({ success: true, message: 'Veritabani sifirlandi' });
+  } catch (err) {
+    logger.error('web', `Sifirlama hatasi: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
