@@ -48,6 +48,7 @@ async function renderMessages() {
       <div id="msgContainer">
         <div class="empty-state">Mesajlari gormek icin bir kanal secin</div>
       </div>
+      <div id="aiComposeWrapper"></div>
     `;
 
     if (prevChannel) onMsgChannelChange(prevChannel);
@@ -397,15 +398,15 @@ function refreshMessages() {
 let _aiComposeData = null;
 
 function toggleAICompose(channelId) {
-  const container = document.getElementById('msgContainer');
-  let panel = document.getElementById('aiComposePanel');
+  const wrapper = document.getElementById('aiComposeWrapper');
+  if (!wrapper) return;
 
-  if (panel) {
-    panel.remove();
+  if (wrapper.innerHTML.trim()) {
+    wrapper.innerHTML = '';
     return;
   }
 
-  container.insertAdjacentHTML('beforeend', `
+  wrapper.innerHTML = `
     <div id="aiComposePanel" style="border-top:1px solid var(--border);padding:16px;background:var(--bg-surface)">
       <div style="font-size:14px;font-weight:600;color:var(--text-heading);margin-bottom:12px">${svgIcon('cpu')} AI ile Mesaj Hazirla</div>
 
@@ -421,7 +422,7 @@ function toggleAICompose(channelId) {
 
       <div class="btn-group" style="margin-bottom:12px">
         <button class="btn btn-primary btn-sm" id="aiComposeBtn" onclick="aiCompose('${channelId}')">Hazirla</button>
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('aiComposePanel').remove()">Kapat</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('aiComposeWrapper').innerHTML=''">Kapat</button>
       </div>
 
       <!-- Onizleme -->
@@ -541,8 +542,8 @@ async function sendAICompose(channelId) {
     if (res.success) {
       showToast('Embed mesaj gonderildi');
       _aiComposeData = null;
-      const panel = document.getElementById('aiComposePanel');
-      if (panel) panel.remove();
+      const wrapper = document.getElementById('aiComposeWrapper');
+      if (wrapper) wrapper.innerHTML = '';
       loadMessages(channelId, false);
     }
   } catch(e) { showToast(e.message, 'error'); }
