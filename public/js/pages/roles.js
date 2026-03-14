@@ -343,7 +343,7 @@ async function aiCreateRoles() {
   result.innerHTML = '';
 
   try {
-    const res = await API.post(`/api/roles/${guildId}/ai-create`, { prompt });
+    const res = await API.post(`/api/roles/${guildId}/ai-create`, { prompt }, { timeout: 600000 });
     if (res.success) {
       result.innerHTML = `<div class="alert alert-success">${res.created.length} rol olusturuldu: ${res.created.map(r => '<strong style="color:'+r.color+'">' + r.name + '</strong>').join(', ')}</div>`;
       showToast(`${res.created.length} rol AI ile olusturuldu`);

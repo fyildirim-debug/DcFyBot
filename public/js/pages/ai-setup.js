@@ -142,7 +142,7 @@ async function aiSetupServer() {
   result.innerHTML = '<div class="alert alert-info">AI sunucu yapisini planliyor ve olusturuyor, lutfen bekleyin...</div>';
 
   try {
-    const res = await API.post(`/api/guilds/${guildId}/ai-setup`, { prompt, clearExisting });
+    const res = await API.post(`/api/guilds/${guildId}/ai-setup`, { prompt, clearExisting }, { timeout: 600000 });
     if (res.success) {
       let html = `<div class="alert alert-success"><strong>${res.roles} rol</strong> ve <strong>${res.channels} kanal</strong> olusturuldu!</div>`;
 

@@ -131,6 +131,8 @@ router.delete('/:guildId/:roleId', requireAuth, async (req, res) => {
 
 // POST /api/roles/:guildId/ai-create - AI ile rol olustur
 router.post('/:guildId/ai-create', requireAuth, async (req, res) => {
+  req.setTimeout(600000);
+  res.setTimeout(600000);
   try {
     const guild = getGuild(req.params.guildId);
     if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });

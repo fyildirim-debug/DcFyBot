@@ -168,6 +168,8 @@ router.delete('/:guildId/invite/:code', requireAuth, async (req, res) => {
 
 // POST /api/guilds/:guildId/ai-setup - AI ile sunucu yapisi kur (roller + kanallar + izinler)
 router.post('/:guildId/ai-setup', requireAuth, async (req, res) => {
+  req.setTimeout(600000);
+  res.setTimeout(600000);
   try {
     const { queryOne } = require('../../db');
     if (!botClient?.isReady()) return res.status(400).json({ error: 'Bot cevrimdisi' });

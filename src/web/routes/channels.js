@@ -183,6 +183,8 @@ router.put('/:guildId/:channelId', requireAuth, async (req, res) => {
 
 // POST /api/channels/:guildId/ai-create - AI ile kanal olustur
 router.post('/:guildId/ai-create', requireAuth, async (req, res) => {
+  req.setTimeout(600000); // 10dk
+  res.setTimeout(600000);
   try {
     const guild = getGuild(req.params.guildId);
     if (!guild) return res.status(404).json({ error: 'Sunucu bulunamadi' });

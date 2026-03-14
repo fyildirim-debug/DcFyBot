@@ -363,7 +363,7 @@ async function aiCreateChannels() {
   result.innerHTML = '';
 
   try {
-    const res = await API.post(`/api/channels/${guildId}/ai-create`, { prompt });
+    const res = await API.post(`/api/channels/${guildId}/ai-create`, { prompt }, { timeout: 600000 });
     if (res.success) {
       result.innerHTML = `<div class="alert alert-success">${res.created.length} kanal olusturuldu: ${res.created.map(c => '<strong>' + c.name + '</strong>').join(', ')}</div>`;
       showToast(`${res.created.length} kanal AI ile olusturuldu`);
