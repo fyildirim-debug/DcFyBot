@@ -4,45 +4,54 @@ const { query } = require('../db');
 
 const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
 let minLevel = 'info';
-let fileStream = null;
 let logFilePath = null;
+let logReady = false;
+
+// Dosyaya aninda yaz (sync - buffer yok, canli yazilir)
+function writeToFile(text) {
+  if (!logReady || !logFilePath) return;
+  try {
+    fs.appendFileSync(logFilePath, text + '\n');
+  } catch {}
+}
 
 // Log dosyasini baslat
 function initFileLog() {
-  if (fileStream) return;
+  if (logReady) return;
 
   const logsDir = path.join(__dirname, '..', '..', 'logs');
   if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
 
-  // Tarihli dosya adi: logs/2026-03-14.log
   const date = new Date().toISOString().slice(0, 10);
   logFilePath = path.join(logsDir, `${date}.log`);
-
-  fileStream = fs.createWriteStream(logFilePath, { flags: 'a' });
+  logReady = true;
 
   // Baslangic ayirici
-  const sep = `\n${'='.repeat(80)}\n[${new Date().toISOString()}] FyDCBot BASLADI - PID: ${process.pid}\nNode: ${process.version} | Platform: ${process.platform} ${process.arch}\nCWD: ${process.cwd()}\n${'='.repeat(80)}\n`;
-  fileStream.write(sep);
+  const sep = [
+    '',
+    '='.repeat(80),
+    `[${new Date().toISOString()}] FyDCBot BASLADI - PID: ${process.pid}`,
+    `Node: ${process.version} | Platform: ${process.platform} ${process.arch}`,
+    `CWD: ${process.cwd()}`,
+    '='.repeat(80),
+  ].join('\n');
+  writeToFile(sep);
 
   // Yakalanmamis hatalari dosyaya yaz
   process.on('uncaughtException', (err) => {
     const msg = formatFull('error', 'UNCAUGHT', `${err.message}\n${err.stack}`);
-    if (fileStream) fileStream.write(msg + '\n');
+    writeToFile(msg);
     console.error(msg);
   });
 
   process.on('unhandledRejection', (reason) => {
     const msg = formatFull('error', 'UNHANDLED', `${reason?.message || reason}\n${reason?.stack || ''}`);
-    if (fileStream) fileStream.write(msg + '\n');
+    writeToFile(msg);
     console.error(msg);
   });
 
-  // Kapanirken kapat
   process.on('exit', () => {
-    if (fileStream) {
-      fileStream.write(`\n[${new Date().toISOString()}] FyDCBot KAPANDI\n`);
-      fileStream.end();
-    }
+    writeToFile(`[${new Date().toISOString()}] FyDCBot KAPANDI`);
   });
 }
 
@@ -86,11 +95,9 @@ async function log(level, source, message, extra = {}) {
   else if (level === 'warn') console.warn(short);
   else console.log(short);
 
-  // Dosyaya yaz (detayli format)
-  if (fileStream) {
-    const full = formatFull(level, source, message, extra);
-    fileStream.write(full + '\n');
-  }
+  // Dosyaya ANINDA yaz (sync)
+  const full = formatFull(level, source, message, extra);
+  writeToFile(full);
 
   // DB'ye kaydet
   try {
@@ -103,20 +110,14 @@ async function log(level, source, message, extra = {}) {
   }
 }
 
-// npm/express hata ciktisini yakala
+// stderr yakalama
 function captureStdErr() {
-  const origStderrWrite = process.stderr.write.bind(process.stderr);
+  const origWrite = process.stderr.write.bind(process.stderr);
   process.stderr.write = (chunk, encoding, cb) => {
-    // Orijinal stderr'e yaz
-    origStderrWrite(chunk, encoding, cb);
-    // Dosyaya da yaz
-    if (fileStream) {
-      const ts = new Date().toISOString();
-      const text = typeof chunk === 'string' ? chunk : chunk.toString();
-      if (text.trim()) {
-        fileStream.write(`[${ts}] [STDERR] ${text}`);
-        if (!text.endsWith('\n')) fileStream.write('\n');
-      }
+    origWrite(chunk, encoding, cb);
+    const text = typeof chunk === 'string' ? chunk : chunk.toString();
+    if (text.trim()) {
+      writeToFile(`[${new Date().toISOString()}] [STDERR] ${text.trimEnd()}`);
     }
   };
 }
@@ -127,10 +128,9 @@ const warn = (source, msg, extra) => log('warn', source, msg, extra);
 const error = (source, msg, extra) => log('error', source, msg, extra);
 const debug = (source, msg, extra) => log('debug', source, msg, extra);
 
-// Log dosya yolunu getir
 function getLogFilePath() { return logFilePath; }
 
-// Son N satiri oku (tail)
+// Son N satiri oku
 function tailLog(lines = 100) {
   if (!logFilePath || !fs.existsSync(logFilePath)) return '';
   const content = fs.readFileSync(logFilePath, 'utf-8');

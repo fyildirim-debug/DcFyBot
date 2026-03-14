@@ -1,6 +1,7 @@
 {
-  "version": "1.0.4.0",
+  "version": "1.0.4.1",
   "history": [
+    { "version": "1.0.4.1", "date": "2026-03-14", "summary": "Logger canli yazim: createWriteStream yerine appendFileSync, buffer yok aninda diske yazilir" },
     { "version": "1.0.4.0", "date": "2026-03-14", "summary": "Setup wizard siyah ekran hatasi duzeltildi: SetupPage singleton yeniden yazildi, I18n yukleme sirasi duzeltildi" },
     { "version": "1.0.3.2", "date": "2026-03-14", "summary": "EBUSY hatasi duzeltildi: Tee-Object/tee kaldirildi, Node logger zaten dosyaya yaziyor" },
     { "version": "1.0.3.1", "date": "2026-03-14", "summary": "dev.bat batch syntax hatasi duzeltildi: inline node yerine dev-check.js helper, goto tabanli akis" },
