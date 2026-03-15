@@ -232,8 +232,51 @@ router.post('/disable/:guildId', requireAuth, async (req, res) => {
         }
       }
 
-      // DB guncelle
-      await query('UPDATE captcha_settings SET enabled = FALSE, updated_at = NOW() WHERE guild_id = $1', [req.params.guildId]);
+      // Dogrulanmamis rolunu sunucudan sil (captcha olusturdu)
+      if (settings.unverified_role_id) {
+        const unverifiedRole = guild.roles.cache.get(settings.unverified_role_id);
+        if (unverifiedRole) {
+          await unverifiedRole.delete('Captcha kapatildi - rol siliniyor').catch((err) => {
+            logger.warn('captcha', `Dogrulanmamis rol silinemedi: ${err.message}`);
+          });
+          logger.info('captcha', `"Dogrulanmamis" rolu silindi: ${guild.name}`);
+        }
+      }
+
+      // Dogrulanmis rolunu sunucudan sil (captcha olusturdu)
+      if (settings.verified_role_id) {
+        const verifiedRole = guild.roles.cache.get(settings.verified_role_id);
+        if (verifiedRole) {
+          await verifiedRole.delete('Captcha kapatildi - rol siliniyor').catch((err) => {
+            logger.warn('captcha', `Dogrulanmis rol silinemedi: ${err.message}`);
+          });
+          logger.info('captcha', `"Dogrulanmis" rolu silindi: ${guild.name}`);
+        }
+      }
+
+      // Dogrulama kanalini sil (captcha olusturdu)
+      if (settings.verification_channel_id) {
+        const verifyChannel = guild.channels.cache.get(settings.verification_channel_id);
+        if (verifyChannel) {
+          await verifyChannel.delete('Captcha kapatildi - kanal siliniyor').catch((err) => {
+            logger.warn('captcha', `Dogrulama kanali silinemedi: ${err.message}`);
+          });
+          logger.info('captcha', `"dogrulama" kanali silindi: ${guild.name}`);
+        }
+      }
+
+      // DB guncelle - ayarlari sifirla
+      await query(
+        `UPDATE captcha_settings SET
+          enabled = FALSE,
+          verified_role_id = NULL,
+          unverified_role_id = NULL,
+          verification_channel_id = NULL,
+          auto_setup_done = FALSE,
+          updated_at = NOW()
+        WHERE guild_id = $1`,
+        [req.params.guildId]
+      );
       await query('DELETE FROM captcha_pending WHERE guild_id = $1', [req.params.guildId]);
     }
 

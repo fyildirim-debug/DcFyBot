@@ -1,6 +1,7 @@
 {
-  "version": "1.3.1.0",
+  "version": "1.3.1.1",
   "history": [
+    { "version": "1.3.1.1", "date": "2026-03-16", "summary": "Captcha kapat: Dogrulanmamis/Dogrulanmis rolleri ve dogrulama kanali sunucudan siliniyor, DB ayarlari sifirlaniyor" },
     { "version": "1.3.1.0", "date": "2026-03-16", "summary": "Captcha kalici dogrulama butonu: kanala sabit embed+buton, herkes tiklayabilir, matematik/kod tipinde ephemeral soru, zaten dogrulanmis kontrolu" },
     { "version": "1.3.0.2", "date": "2026-03-16", "summary": "Captcha dogrulama kanali izin duzeltmesi: kanal onceden varsa da izinler her zaman guncellenir, bot erisimi eklendi" },
     { "version": "1.3.0.1", "date": "2026-03-16", "summary": "Captcha guvenlik: mevcut rol overwrite'larina dokunmaz, sadece @everyone ViewChannel ve Dogrulanmis rolunu ekler/kaldirir, disable'da akilli geri alma" },
