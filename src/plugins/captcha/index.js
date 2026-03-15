@@ -112,6 +112,40 @@ async function autoSetupGuild(guild, settings) {
     }
 
     logger.info('captcha', `"dogrulama" kanali izinleri ayarlandi: ${guild.name}`);
+
+    // 3b. Kanaldaki eski mesajlari temizle ve kalici dogrulama mesaji gonder
+    try {
+      const oldMessages = await verifyChannel.messages.fetch({ limit: 50 });
+      const botMessages = oldMessages.filter(m => m.author.id === guild.members.me?.id);
+      for (const [, msg] of botMessages) {
+        await msg.delete().catch(() => {});
+      }
+    } catch {}
+
+    // Kalici dogrulama mesaji + buton
+    const welcomeEmbed = new EmbedBuilder()
+      .setTitle('Sunucuya Hosgeldiniz!')
+      .setDescription(
+        'Bu sunucuya erisim icin dogrulamanizi tamamlamaniz gerekmektedir.\n\n' +
+        '**Nasil dogrulanirsiniz?**\n' +
+        'Asagidaki **Dogrula** butonuna tiklayin.\n\n' +
+        'Dogrulama sonrasi tum kanallara erisebilirsiniz.'
+      )
+      .setColor(0x5865F2)
+      .setFooter({ text: 'FyDCBot Captcha Sistemi' })
+      .setTimestamp();
+
+    const verifyRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('captcha_verify_permanent')
+        .setLabel('Dogrula')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('✅')
+    );
+
+    await verifyChannel.send({ embeds: [welcomeEmbed], components: [verifyRow] });
+    logger.info('captcha', `Kalici dogrulama mesaji gonderildi: ${guild.name}`);
+
     results.verification_channel_id = verifyChannel.id;
 
     // 4. Tum diger kanallarda: sadece captcha overwrite'lari ekle
@@ -373,22 +407,85 @@ async function start(client) {
     await sendVerification(member, settings);
   });
 
-  // Buton dogrulama
+  // Buton dogrulama (hem kalici hem kisisel butonlar)
   client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
     if (!interaction.customId.startsWith('captcha_verify_')) return;
 
-    const targetUserId = interaction.customId.replace('captcha_verify_', '');
-
-    // Sadece hedef kullanici tiklayabilir
-    if (interaction.user.id !== targetUserId) {
-      await interaction.reply({ content: 'Bu dogrulama size ait degil.', ephemeral: true });
-      return;
-    }
-
     const settings = await queryOne('SELECT * FROM captcha_settings WHERE guild_id = $1 AND enabled = TRUE', [interaction.guildId]);
     if (!settings) {
       await interaction.reply({ content: 'Captcha sistemi deaktif.', ephemeral: true });
+      return;
+    }
+
+    const targetUserId = interaction.customId.replace('captcha_verify_', '');
+
+    // Kalici buton - herkes tiklayabilir
+    if (targetUserId === 'permanent') {
+      const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+      if (!member) {
+        await interaction.reply({ content: 'Uye bilgisi alinamadi.', ephemeral: true });
+        return;
+      }
+
+      // Zaten dogrulanmis mi?
+      if (settings.verified_role_id && member.roles.cache.has(settings.verified_role_id)) {
+        await interaction.reply({ content: 'Zaten dogrulanmissiniz!', ephemeral: true });
+        return;
+      }
+
+      // Buton tipinde direkt dogrula
+      if (settings.type === 'button') {
+        const success = await verifyMember(interaction.guild, interaction.user.id, settings);
+        if (success) {
+          await interaction.reply({ content: '✅ Dogrulama basarili! Hosgeldiniz. Artik tum kanallara erisebilirsiniz.', ephemeral: true });
+        } else {
+          await interaction.reply({ content: 'Dogrulama sirasinda bir hata olustu.', ephemeral: true });
+        }
+        return;
+      }
+
+      // Matematik veya kod tipinde: kisisel soru gonder
+      if (settings.type === 'math' || settings.type === 'code') {
+        const timeout = settings.timeout_minutes || 5;
+        const expiresAt = new Date(Date.now() + timeout * 60 * 1000);
+
+        // Onceki bekleyen dogrulamayi sil
+        await query('DELETE FROM captcha_pending WHERE guild_id = $1 AND user_id = $2', [interaction.guildId, interaction.user.id]);
+
+        let question, answer;
+        if (settings.type === 'math') {
+          const math = generateMath();
+          question = math.question;
+          answer = math.answer;
+        } else {
+          const code = generateCode(6);
+          question = code;
+          answer = code;
+        }
+
+        await query(
+          'INSERT INTO captcha_pending (guild_id, user_id, code, answer, max_attempts, expires_at) VALUES ($1, $2, $3, $4, $5, $6)',
+          [interaction.guildId, interaction.user.id, question, answer, 3, expiresAt]
+        );
+
+        const promptText = settings.type === 'math'
+          ? `Asagidaki soruyu bu kanala yazarak cevaplayin:\n\n**${question}**`
+          : `Asagidaki kodu bu kanala yazin:\n\n\`\`\`${question}\`\`\``;
+
+        await interaction.reply({
+          content: `📝 **Dogrulama**\n\n${promptText}\n\n_${timeout} dakika | 3 deneme hakkiniz var_`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      return;
+    }
+
+    // Kisisel buton - sadece hedef kullanici tiklayabilir
+    if (interaction.user.id !== targetUserId) {
+      await interaction.reply({ content: 'Bu dogrulama size ait degil.', ephemeral: true });
       return;
     }
 
@@ -410,8 +507,7 @@ async function start(client) {
     const success = await verifyMember(interaction.guild, interaction.user.id, settings);
 
     if (success) {
-      await interaction.reply({ content: 'Dogrulama basarili! Hosgeldiniz.', ephemeral: true });
-      // Dogrulama mesajini sil
+      await interaction.reply({ content: '✅ Dogrulama basarili! Hosgeldiniz.', ephemeral: true });
       try { await interaction.message.delete(); } catch {}
     } else {
       await interaction.reply({ content: 'Dogrulama sirasinda bir hata olustu.', ephemeral: true });
