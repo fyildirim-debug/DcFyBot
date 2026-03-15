@@ -84,32 +84,36 @@ async function autoSetupGuild(guild, settings) {
     }
 
     // Dogrulama kanalinin izinlerini HER ZAMAN ayarla (kanal onceden varsa da)
-    // @everyone goremez, Dogrulanmamis gorup yazabilir, Dogrulanmis goremez
-    await verifyChannel.permissionOverwrites.edit(guild.id, {
-      ViewChannel: false,
-      SendMessages: false
-    }, { reason: 'Captcha: @everyone erisim yok' });
+    // Strateji: @everyone goremez, Dogrulanmamis gorup yazabilir, Dogrulanmis goremez
+    // Oncelikle mevcut overwrite'lari temizle ve sifirdan ayarla
+    try {
+      // Tum mevcut overwrite'lari temizle (temiz baslangic)
+      for (const [id] of verifyChannel.permissionOverwrites.cache) {
+        if (id !== guild.id) { // @everyone haric
+          await verifyChannel.permissionOverwrites.delete(id, 'Captcha: temiz baslangic').catch(() => {});
+        }
+      }
+    } catch {}
 
-    await verifyChannel.permissionOverwrites.edit(unverifiedRole.id, {
-      ViewChannel: true,
-      SendMessages: true,
-      ReadMessageHistory: true
-    }, { reason: 'Captcha: dogrulanmamis uyeler bu kanali gorebilir' });
-
-    await verifyChannel.permissionOverwrites.edit(verifiedRole.id, {
-      ViewChannel: false
-    }, { reason: 'Captcha: dogrulanmis uyeler bu kanali goremez' });
-
-    // Bot'un kendi rolunu de ekle (mesaj gonderebilmesi icin)
-    const botMember = guild.members.me;
-    if (botMember) {
-      await verifyChannel.permissionOverwrites.edit(botMember.id, {
-        ViewChannel: true,
-        SendMessages: true,
-        EmbedLinks: true,
-        ManageMessages: true
-      }, { reason: 'Captcha: bot erisimi' });
-    }
+    // @everyone: goremez, yazamaz
+    await verifyChannel.permissionOverwrites.set([
+      {
+        id: guild.id, // @everyone
+        deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+      },
+      {
+        id: unverifiedRole.id, // Dogrulanmamis: gorebilir, yazabilir
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+      },
+      {
+        id: verifiedRole.id, // Dogrulanmis: goremez
+        deny: [PermissionFlagsBits.ViewChannel]
+      },
+      {
+        id: guild.members.me?.id || guild.client.user.id, // Bot: tam erisim
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.ManageMessages]
+      }
+    ], 'Captcha sistemi - dogrulama kanali izinleri');
 
     logger.info('captcha', `"dogrulama" kanali izinleri ayarlandi: ${guild.name}`);
 
@@ -199,7 +203,27 @@ async function autoSetupGuild(guild, settings) {
     }
 
     logger.info('captcha', `Kanal izinleri ayarlandi: ${guild.name} (${successCount}/${channels.size} kanal)`);
-    logger.info('captcha', `NOT: Mevcut rol overwrite'larina dokunulmadi, sadece @everyone ve Dogrulanmis rolu eklendi`);
+
+    // 5. Mevcut uyelere rol ata
+    // Sunucu sahibi ve botlar haric herkese "Dogrulanmis" rolunu ver
+    // (mevcut uyeler zaten dogrulanmis kabul edilir)
+    try {
+      const members = await guild.members.fetch();
+      let verifiedCount = 0;
+      for (const [, member] of members) {
+        if (member.user.bot) continue; // Botlara rol verme
+        if (member.id === guild.ownerId) continue; // Sunucu sahibi zaten her seyi gorebilir
+
+        // Dogrulanmis rolunu ver (mevcut uyeler dogrulanmis kabul edilir)
+        if (!member.roles.cache.has(verifiedRole.id)) {
+          await member.roles.add(verifiedRole.id, 'Captcha kurulumu - mevcut uye').catch(() => {});
+          verifiedCount++;
+        }
+      }
+      logger.info('captcha', `Mevcut uyelere Dogrulanmis rolu verildi: ${verifiedCount} uye - ${guild.name}`);
+    } catch (err) {
+      logger.warn('captcha', `Mevcut uyelere rol atama hatasi: ${err.message}`);
+    }
 
     return results;
   } catch (err) {
