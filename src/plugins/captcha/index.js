@@ -78,24 +78,40 @@ async function autoSetupGuild(guild, settings) {
         name: 'dogrulama',
         type: ChannelType.GuildText,
         topic: 'Sunucuya erisim icin dogrulamanizi tamamlayin',
-        reason: 'Captcha sistemi - otomatik olusturuldu',
-        permissionOverwrites: [
-          {
-            id: guild.id, // @everyone
-            deny: [PermissionFlagsBits.ViewChannel]
-          },
-          {
-            id: unverifiedRole.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-          },
-          {
-            id: verifiedRole.id,
-            deny: [PermissionFlagsBits.ViewChannel]
-          }
-        ]
+        reason: 'Captcha sistemi - otomatik olusturuldu'
       });
       logger.info('captcha', `"dogrulama" kanali olusturuldu: ${guild.name}`);
     }
+
+    // Dogrulama kanalinin izinlerini HER ZAMAN ayarla (kanal onceden varsa da)
+    // @everyone goremez, Dogrulanmamis gorup yazabilir, Dogrulanmis goremez
+    await verifyChannel.permissionOverwrites.edit(guild.id, {
+      ViewChannel: false,
+      SendMessages: false
+    }, { reason: 'Captcha: @everyone erisim yok' });
+
+    await verifyChannel.permissionOverwrites.edit(unverifiedRole.id, {
+      ViewChannel: true,
+      SendMessages: true,
+      ReadMessageHistory: true
+    }, { reason: 'Captcha: dogrulanmamis uyeler bu kanali gorebilir' });
+
+    await verifyChannel.permissionOverwrites.edit(verifiedRole.id, {
+      ViewChannel: false
+    }, { reason: 'Captcha: dogrulanmis uyeler bu kanali goremez' });
+
+    // Bot'un kendi rolunu de ekle (mesaj gonderebilmesi icin)
+    const botMember = guild.members.me;
+    if (botMember) {
+      await verifyChannel.permissionOverwrites.edit(botMember.id, {
+        ViewChannel: true,
+        SendMessages: true,
+        EmbedLinks: true,
+        ManageMessages: true
+      }, { reason: 'Captcha: bot erisimi' });
+    }
+
+    logger.info('captcha', `"dogrulama" kanali izinleri ayarlandi: ${guild.name}`);
     results.verification_channel_id = verifyChannel.id;
 
     // 4. Tum diger kanallarda: sadece captcha overwrite'lari ekle
