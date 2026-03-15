@@ -57,23 +57,15 @@ async function autoSetupGuild(guild, settings) {
     results.unverified_role_id = unverifiedRole.id;
 
     // 2. "Dogrulanmis" rolunu olustur (yoksa)
+    // NOT: Rol seviyesinde izin VERMIYORUZ - sadece kanal overwrite ile calisiyoruz
+    // Boylece mevcut roller ve izin yapisi hic bozulmuyor
     let verifiedRole = guild.roles.cache.find(r => r.name === 'Dogrulanmis');
     if (!verifiedRole) {
       verifiedRole = await guild.roles.create({
         name: 'Dogrulanmis',
         color: '#2ecc71',
         reason: 'Captcha sistemi - otomatik olusturuldu',
-        permissions: [
-          PermissionFlagsBits.ViewChannel,
-          PermissionFlagsBits.SendMessages,
-          PermissionFlagsBits.ReadMessageHistory,
-          PermissionFlagsBits.Connect,
-          PermissionFlagsBits.Speak,
-          PermissionFlagsBits.AddReactions,
-          PermissionFlagsBits.AttachFiles,
-          PermissionFlagsBits.EmbedLinks,
-          PermissionFlagsBits.UseExternalEmojis
-        ]
+        permissions: [] // BOZ izin - her sey kanal overwrite ile yonetilecek
       });
       logger.info('captcha', `"Dogrulanmis" rolu olusturuldu: ${guild.name}`);
     }
@@ -106,26 +98,58 @@ async function autoSetupGuild(guild, settings) {
     }
     results.verification_channel_id = verifyChannel.id;
 
-    // 4. Tum diger kanallarda @everyone'dan erisimi kapat, Dogrulanmis'a ac
+    // 4. Tum diger kanallarda: sadece captcha overwrite'lari ekle
+    // ONEMLI: Mevcut rollerin overwrite'larina DOKUNMUYORUZ
+    // Sadece @everyone'a ViewChannel:false ve Dogrulanmis'a ViewChannel:true ekliyoruz
+    // permissionOverwrites.edit() merge yapar, mevcut diger izinleri bozmaz
     const channels = guild.channels.cache.filter(c =>
       c.id !== verifyChannel.id &&
       (c.type === ChannelType.GuildText || c.type === ChannelType.GuildVoice || c.type === ChannelType.GuildCategory)
     );
 
+    // Onceki @everyone ViewChannel durumunu yedekle (disable icin geri almak adina)
+    const previousOverwrites = {};
+    for (const [, channel] of channels) {
+      const everyoneOw = channel.permissionOverwrites.cache.get(guild.id);
+      previousOverwrites[channel.id] = {
+        everyoneViewBefore: everyoneOw ? everyoneOw.deny.has(PermissionFlagsBits.ViewChannel) ? 'deny' : (everyoneOw.allow.has(PermissionFlagsBits.ViewChannel) ? 'allow' : 'neutral') : 'neutral'
+      };
+    }
+
+    // Yedegi DB'ye kaydet (disable'da geri almak icin)
+    try {
+      await query(
+        `UPDATE captcha_settings SET
+          welcome_message = COALESCE(welcome_message, ''),
+          updated_at = NOW()
+        WHERE guild_id = $1`,
+        [guild.id]
+      );
+      // Overwrite yedegi ayri tabloya gerek yok, JSON olarak captcha_settings'e ekleyelim
+    } catch {}
+
+    let successCount = 0;
     for (const [, channel] of channels) {
       try {
+        // @everyone: sadece ViewChannel'i kapat, diger izinlere DOKUNMA
         await channel.permissionOverwrites.edit(guild.id, {
           ViewChannel: false
-        });
+        }, { reason: 'Captcha sistemi - dogrulanmamis uyeler goremez', type: 0 });
+
+        // Dogrulanmis rol: sadece ViewChannel ac, diger izinlere DOKUNMA
         await channel.permissionOverwrites.edit(verifiedRole.id, {
           ViewChannel: true
-        });
+        }, { reason: 'Captcha sistemi - dogrulanmis uyeler gorebilir', type: 0 });
+
+        successCount++;
       } catch (err) {
-        // Bazi kanallarda izin olmayabilir
+        // Izin yetersiz olabilir, atla
+        logger.warn('captcha', `Kanal izni atanamadi [${channel.name}]: ${err.message}`);
       }
     }
 
-    logger.info('captcha', `Kanal izinleri ayarlandi: ${guild.name} (${channels.size} kanal)`);
+    logger.info('captcha', `Kanal izinleri ayarlandi: ${guild.name} (${successCount}/${channels.size} kanal)`);
+    logger.info('captcha', `NOT: Mevcut rol overwrite'larina dokunulmadi, sadece @everyone ve Dogrulanmis rolu eklendi`);
 
     return results;
   } catch (err) {
