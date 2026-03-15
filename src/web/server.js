@@ -59,6 +59,13 @@ function createServer() {
     } catch { res.json([]); }
   });
 
+  // Plugin API routes (statik olarak tanimla - SPA fallback'den once)
+  try {
+    app.use('/api/plugins/captcha', require('../plugins/captcha/routes/api'));
+  } catch (err) {
+    console.error('[WEB] Captcha route yuklenemedi:', err.message);
+  }
+
   // SPA fallback - tum diger route'lar index.html'e yonlendir
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api/')) {
@@ -85,6 +92,11 @@ function attachBotClient(client) {
   require('./routes/stats').setBotClient(client);
   require('./routes/guilds').setBotClient(client);
   require('./routes/messages').setBotClient(client);
+  // Plugin route'larina bot client bagla
+  try {
+    const captchaRoute = require('../plugins/captcha/routes/api');
+    if (captchaRoute.setBotClient) captchaRoute.setBotClient(client);
+  } catch {}
 }
 
 module.exports = { createServer, attachBotClient };

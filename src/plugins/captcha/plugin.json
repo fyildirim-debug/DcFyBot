@@ -1,12 +1,10 @@
 {
   "name": "captcha",
-  "version": "1.0.0",
-  "description": "Captcha ile uye dogrulama sistemi",
+  "version": "2.0.0",
+  "description": "Captcha ile uye dogrulama sistemi. Buton, matematik sorusu veya kod ile dogrulama. Otomatik sunucu ayari.",
   "author": "FyDCBot",
-  "config": {
-    "verified_role_id": "",
-    "verification_channel_id": "",
-    "captcha_length": 6,
-    "timeout_minutes": 5
+  "config": {},
+  "web": {
+    "routes": ["routes/api.js"]
   }
 }

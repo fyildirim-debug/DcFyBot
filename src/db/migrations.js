@@ -174,6 +174,44 @@ const migrations = [
       );
       CREATE INDEX IF NOT EXISTS idx_word_filters_guild ON word_filters(guild_id, enabled);
     `
+  },
+  {
+    version: 4,
+    name: 'captcha_system',
+    up: `
+      CREATE TABLE IF NOT EXISTS captcha_settings (
+        guild_id TEXT PRIMARY KEY,
+        enabled BOOLEAN DEFAULT FALSE,
+        type TEXT DEFAULT 'button',
+        verified_role_id TEXT,
+        unverified_role_id TEXT,
+        verification_channel_id TEXT,
+        log_channel_id TEXT,
+        timeout_minutes INTEGER DEFAULT 5,
+        kick_on_timeout BOOLEAN DEFAULT FALSE,
+        welcome_message TEXT DEFAULT '',
+        success_message TEXT DEFAULT '',
+        fail_message TEXT DEFAULT '',
+        auto_setup_done BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS captcha_pending (
+        id SERIAL PRIMARY KEY,
+        guild_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        code TEXT,
+        answer TEXT,
+        message_id TEXT,
+        attempts INTEGER DEFAULT 0,
+        max_attempts INTEGER DEFAULT 3,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_captcha_pending_user ON captcha_pending(guild_id, user_id);
+      CREATE INDEX IF NOT EXISTS idx_captcha_pending_expires ON captcha_pending(expires_at);
+    `
   }
 ];
 

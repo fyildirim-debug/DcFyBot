@@ -56,5 +56,9 @@ const API = {
   async del(url) {
     const res = await this.fetch(url, { method: 'DELETE' });
     return res.json();
+  },
+
+  async delete(url) {
+    return this.del(url);
   }
 };

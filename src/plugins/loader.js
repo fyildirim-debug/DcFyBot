@@ -55,8 +55,11 @@ async function startPlugins(botClient) {
         [name, '_global']
       );
 
-      if (settings?.enabled && plugin.instance.start) {
-        await plugin.instance.start(botClient, settings.config || {});
+      plugin.botClient = botClient;
+      // Captcha gibi guild-bazli eklentiler her zaman baslatilir (kendi icinde kontrol eder)
+      const alwaysStart = ['captcha'];
+      if ((settings?.enabled || alwaysStart.includes(name)) && plugin.instance.start) {
+        await plugin.instance.start(botClient, settings?.config || {});
         logger.info('plugins', `Eklenti baslatildi: ${name}`);
       }
     } catch (err) {
@@ -130,6 +133,10 @@ function mountPluginWeb(app) {
           try {
             const router = require(routePath);
             app.use(`/api/plugins/${name}`, router);
+            // Bot client'i route'a bagla (varsa)
+            if (typeof router.setBotClient === 'function' && p.botClient) {
+              router.setBotClient(p.botClient);
+            }
             logger.info('plugins', `Eklenti web route yuklendi: ${name}`);
           } catch (err) {
             logger.error('plugins', `Eklenti route yuklenemedi [${name}]: ${err.message}`);
