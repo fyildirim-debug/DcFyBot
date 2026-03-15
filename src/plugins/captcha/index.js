@@ -152,52 +152,53 @@ async function autoSetupGuild(guild, settings) {
 
     results.verification_channel_id = verifyChannel.id;
 
-    // 4. Tum diger kanallarda: sadece captcha overwrite'lari ekle
-    // ONEMLI: Mevcut rollerin overwrite'larina DOKUNMUYORUZ
-    // Sadece @everyone'a ViewChannel:false ve Dogrulanmis'a ViewChannel:true ekliyoruz
-    // permissionOverwrites.edit() merge yapar, mevcut diger izinleri bozmaz
+    // 4. SNAPSHOT AL - tum kanallarin mevcut izin durumunu kaydet
     const channels = guild.channels.cache.filter(c =>
       c.id !== verifyChannel.id &&
       (c.type === ChannelType.GuildText || c.type === ChannelType.GuildVoice || c.type === ChannelType.GuildCategory)
     );
 
-    // Onceki @everyone ViewChannel durumunu yedekle (disable icin geri almak adina)
-    const previousOverwrites = {};
+    const snapshot = {};
     for (const [, channel] of channels) {
-      const everyoneOw = channel.permissionOverwrites.cache.get(guild.id);
-      previousOverwrites[channel.id] = {
-        everyoneViewBefore: everyoneOw ? everyoneOw.deny.has(PermissionFlagsBits.ViewChannel) ? 'deny' : (everyoneOw.allow.has(PermissionFlagsBits.ViewChannel) ? 'allow' : 'neutral') : 'neutral'
-      };
+      const overwrites = [];
+      for (const [id, ow] of channel.permissionOverwrites.cache) {
+        overwrites.push({
+          id,
+          type: ow.type, // 0 = role, 1 = member
+          allow: ow.allow.bitfield.toString(), // BigInt -> string
+          deny: ow.deny.bitfield.toString()
+        });
+      }
+      snapshot[channel.id] = { name: channel.name, overwrites };
     }
 
-    // Yedegi DB'ye kaydet (disable'da geri almak icin)
+    // Snapshot'i DB'ye kaydet
     try {
       await query(
-        `UPDATE captcha_settings SET
-          welcome_message = COALESCE(welcome_message, ''),
-          updated_at = NOW()
-        WHERE guild_id = $1`,
-        [guild.id]
+        `UPDATE captcha_settings SET permission_snapshot = $1, updated_at = NOW() WHERE guild_id = $2`,
+        [JSON.stringify(snapshot), guild.id]
       );
-      // Overwrite yedegi ayri tabloya gerek yok, JSON olarak captcha_settings'e ekleyelim
-    } catch {}
+      logger.info('captcha', `Izin snapshot'i kaydedildi: ${Object.keys(snapshot).length} kanal - ${guild.name}`);
+    } catch (err) {
+      logger.warn('captcha', `Snapshot kaydetme hatasi: ${err.message}`);
+    }
 
+    // 5. Captcha overwrite'larini ekle
     let successCount = 0;
     for (const [, channel] of channels) {
       try {
         // @everyone: sadece ViewChannel'i kapat, diger izinlere DOKUNMA
         await channel.permissionOverwrites.edit(guild.id, {
           ViewChannel: false
-        }, { reason: 'Captcha sistemi - dogrulanmamis uyeler goremez', type: 0 });
+        }, { reason: 'Captcha sistemi - dogrulanmamis uyeler goremez' });
 
         // Dogrulanmis rol: sadece ViewChannel ac, diger izinlere DOKUNMA
         await channel.permissionOverwrites.edit(verifiedRole.id, {
           ViewChannel: true
-        }, { reason: 'Captcha sistemi - dogrulanmis uyeler gorebilir', type: 0 });
+        }, { reason: 'Captcha sistemi - dogrulanmis uyeler gorebilir' });
 
         successCount++;
       } catch (err) {
-        // Izin yetersiz olabilir, atla
         logger.warn('captcha', `Kanal izni atanamadi [${channel.name}]: ${err.message}`);
       }
     }

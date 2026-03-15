@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const { PermissionsBitField } = require('discord.js');
 const { query, queryOne } = require('../../../db');
 const { requireAuth } = require('../../../web/middleware/auth');
 const logger = require('../../../utils/logger');
@@ -174,62 +175,73 @@ router.post('/disable/:guildId', requireAuth, async (req, res) => {
     const settings = await queryOne('SELECT * FROM captcha_settings WHERE guild_id = $1', [req.params.guildId]);
 
     if (settings) {
-      // Captcha'nin degistirdigi kanal izinlerini geri al
-      const channels = guild.channels.cache.filter(c =>
+      // SNAPSHOT'TAN GERI YUKLE
+      const snapshot = settings.permission_snapshot || {};
+      const snapshotChannelIds = Object.keys(snapshot);
+
+      const allChannels = guild.channels.cache.filter(c =>
         c.id !== settings.verification_channel_id
       );
 
-      let fixedCount = 0;
-      for (const [, channel] of channels) {
+      let restoredCount = 0;
+      let newChannelCount = 0;
+
+      for (const [, channel] of allChannels) {
         try {
-          // Captcha kurulumunda @everyone'a ViewChannel:false eklenmisti
-          // Simdi @everyone overwrite'indaki ViewChannel deny'i kaldir
-          const everyoneOw = channel.permissionOverwrites.cache.get(guild.id);
-          if (everyoneOw && everyoneOw.deny.has(PermissionFlagsBits.ViewChannel)) {
-            // @everyone overwrite'ini tamamen silip, ViewChannel haric geri olustur
-            const remainingAllow = everyoneOw.allow;
-            const remainingDeny = everyoneOw.deny.remove(PermissionFlagsBits.ViewChannel);
+          if (snapshotChannelIds.includes(channel.id)) {
+            // BU KANAL SNAPSHOT'TA VAR - eski haline geri dondur
+            const saved = snapshot[channel.id];
 
-            if (remainingAllow.bitfield === 0n && remainingDeny.bitfield === 0n) {
-              // Baska overwrite kalmadi, tamamen sil
-              await channel.permissionOverwrites.delete(guild.id, 'Captcha kapatildi');
-            } else {
-              // Diger izinleri koru, sadece ViewChannel deny'i kaldir
-              // Overwrite'i sil ve yeniden olustur (en guvenilir yol)
-              await channel.permissionOverwrites.delete(guild.id, 'Captcha kapatildi - yeniden olusturuluyor');
-              const newPerms = {};
-              // Allow izinlerini geri ekle
-              for (const [perm, value] of Object.entries(PermissionFlagsBits)) {
-                if (remainingAllow.has(value)) newPerms[perm] = true;
-                if (remainingDeny.has(value)) newPerms[perm] = false;
+            // Snapshot'taki overwrite'lari hazirla (captcha rolleri haric)
+            const restoreOverwrites = [];
+            for (const ow of saved.overwrites) {
+              // Captcha rolleri silinecek, onlarin overwrite'ini geri yukleme
+              if (ow.id === settings.verified_role_id || ow.id === settings.unverified_role_id) continue;
+
+              // Rol veya uye hala var mi kontrol et
+              if (ow.id !== guild.id) {
+                const targetExists = ow.type === 0
+                  ? guild.roles.cache.has(ow.id)
+                  : guild.members.cache.has(ow.id);
+                if (!targetExists) continue;
               }
-              if (Object.keys(newPerms).length > 0) {
-                await channel.permissionOverwrites.edit(guild.id, newPerms, { reason: 'Captcha kapatildi - izinler geri yuklendi' });
-              }
+
+              restoreOverwrites.push({
+                id: ow.id,
+                type: ow.type,
+                allow: BigInt(ow.allow || '0'),
+                deny: BigInt(ow.deny || '0')
+              });
             }
-            fixedCount++;
-          }
 
-          // Dogrulanmis rol overwrite'ini tamamen sil (captcha olusturdu)
-          if (settings.verified_role_id) {
-            const verifiedOw = channel.permissionOverwrites.cache.get(settings.verified_role_id);
-            if (verifiedOw) {
+            // permissionOverwrites.set() ile tamamen eski haline dondur
+            await channel.permissionOverwrites.set(
+              restoreOverwrites,
+              'Captcha kapatildi - snapshot geri yukleniyor'
+            );
+            restoredCount++;
+          } else {
+            // BU KANAL CAPTCHA ACIKKEN OLUSTURULDU
+            // Sadece captcha overwrite'larini temizle, gerisi kalsin
+            if (settings.verified_role_id) {
               await channel.permissionOverwrites.delete(settings.verified_role_id, 'Captcha kapatildi').catch(() => {});
             }
-          }
-
-          // Dogrulanmamis rol overwrite'ini da sil (varsa)
-          if (settings.unverified_role_id) {
-            const unverifiedOw = channel.permissionOverwrites.cache.get(settings.unverified_role_id);
-            if (unverifiedOw) {
+            if (settings.unverified_role_id) {
               await channel.permissionOverwrites.delete(settings.unverified_role_id, 'Captcha kapatildi').catch(() => {});
             }
+            // @everyone ViewChannel deny varsa kaldir
+            const everyoneOw = channel.permissionOverwrites.cache.get(guild.id);
+            if (everyoneOw) {
+              await channel.permissionOverwrites.delete(guild.id, 'Captcha kapatildi').catch(() => {});
+            }
+            newChannelCount++;
           }
         } catch (err) {
           logger.warn('captcha', `Kanal izin geri alma hatasi [${channel.name}]: ${err.message}`);
         }
       }
-      logger.info('captcha', `${fixedCount} kanalda @everyone ViewChannel geri verildi`);
+
+      logger.info('captcha', `Snapshot'tan geri yuklendi: ${restoredCount} kanal, ${newChannelCount} yeni kanal temizlendi`);
 
       // Tum dogrulanmamis uyelere dogrulanmis rolunu ver (roller silinmeden once)
       if (settings.unverified_role_id) {

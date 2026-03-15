@@ -1,6 +1,7 @@
 {
-  "version": "1.3.1.3",
+  "version": "1.3.2.0",
   "history": [
+    { "version": "1.3.2.0", "date": "2026-03-16", "summary": "Captcha izin snapshot sistemi: acilirken tum kanal izinlerini yedekle, kapatilinca birebir geri yukle, captcha acikken olusan kanallar da temizleniyor" },
     { "version": "1.3.1.3", "date": "2026-03-16", "summary": "Captcha kapat: @everyone ViewChannel deny tamamen kaldiriliyor, overwrite sil+yeniden olustur yontemi, tum captcha overwrite'lari temizleniyor" },
     { "version": "1.3.1.2", "date": "2026-03-16", "summary": "Captcha izin duzeltmesi: permissionOverwrites.set ile temiz baslangic, mevcut uyelere Dogrulanmis rolu, yeni gelenlere Dogrulanmamis rolu" },
     { "version": "1.3.1.1", "date": "2026-03-16", "summary": "Captcha kapat: Dogrulanmamis/Dogrulanmis rolleri ve dogrulama kanali sunucudan siliniyor, DB ayarlari sifirlaniyor" },

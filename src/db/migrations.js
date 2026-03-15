@@ -212,6 +212,13 @@ const migrations = [
       CREATE INDEX IF NOT EXISTS idx_captcha_pending_user ON captcha_pending(guild_id, user_id);
       CREATE INDEX IF NOT EXISTS idx_captcha_pending_expires ON captcha_pending(expires_at);
     `
+  },
+  {
+    version: 5,
+    name: 'captcha_permission_snapshot',
+    up: `
+      ALTER TABLE captcha_settings ADD COLUMN IF NOT EXISTS permission_snapshot JSONB DEFAULT NULL;
+    `
   }
 ];
 
