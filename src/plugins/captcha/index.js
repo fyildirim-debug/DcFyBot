@@ -50,26 +50,33 @@ async function autoSetupGuild(guild, settings) {
         name: 'Dogrulanmamis',
         color: '#95a5a6',
         reason: 'Captcha sistemi - otomatik olusturuldu',
-        permissions: []
+        permissions: [],
+        position: 1 // En alta koy - bot'un altinda olsun
       });
       logger.info('captcha', `"Dogrulanmamis" rolu olusturuldu: ${guild.name}`);
     }
     results.unverified_role_id = unverifiedRole.id;
 
     // 2. "Dogrulanmis" rolunu olustur (yoksa)
-    // NOT: Rol seviyesinde izin VERMIYORUZ - sadece kanal overwrite ile calisiyoruz
-    // Boylece mevcut roller ve izin yapisi hic bozulmuyor
     let verifiedRole = guild.roles.cache.find(r => r.name === 'Dogrulanmis');
     if (!verifiedRole) {
       verifiedRole = await guild.roles.create({
         name: 'Dogrulanmis',
         color: '#2ecc71',
         reason: 'Captcha sistemi - otomatik olusturuldu',
-        permissions: [] // BOZ izin - her sey kanal overwrite ile yonetilecek
+        permissions: [],
+        position: 1 // En alta koy - bot'un altinda olsun
       });
       logger.info('captcha', `"Dogrulanmis" rolu olusturuldu: ${guild.name}`);
     }
     results.verified_role_id = verifiedRole.id;
+
+    // Bot'un rolunun ustunde mi kontrol et
+    const botMember = guild.members.me;
+    if (botMember) {
+      const botHighestRole = botMember.roles.highest;
+      logger.info('captcha', `Bot en yuksek rol: ${botHighestRole.name} (pos:${botHighestRole.position}), Dogrulanmamis pos:${unverifiedRole.position}, Dogrulanmis pos:${verifiedRole.position}`);
+    }
 
     // 3. "dogrulama" kanalini olustur (yoksa)
     let verifyChannel = guild.channels.cache.find(c => c.name === 'dogrulama' && c.type === ChannelType.GuildText);
@@ -226,13 +233,19 @@ async function autoSetupGuild(guild, settings) {
         }
 
         // Diger uyeler: Dogrulanmamis rolu ver, dogrulama yapmasi gerekecek
-        if (!member.roles.cache.has(unverifiedRole.id)) {
-          await member.roles.add(unverifiedRole.id, 'Captcha kurulumu - dogrulama gerekli').catch(() => {});
-          unverifiedCount++;
-        }
-        // Eger onceden Dogrulanmis rolu varsa kaldir
-        if (member.roles.cache.has(verifiedRole.id)) {
-          await member.roles.remove(verifiedRole.id, 'Captcha kurulumu - tekrar dogrulama gerekli').catch(() => {});
+        try {
+          if (!member.roles.cache.has(unverifiedRole.id)) {
+            await member.roles.add(unverifiedRole.id, 'Captcha kurulumu - dogrulama gerekli');
+            unverifiedCount++;
+            logger.info('captcha', `Dogrulanmamis rolu verildi: ${member.user.tag}`);
+          }
+          // Eger onceden Dogrulanmis rolu varsa kaldir
+          if (member.roles.cache.has(verifiedRole.id)) {
+            await member.roles.remove(verifiedRole.id, 'Captcha kurulumu - tekrar dogrulama gerekli');
+            logger.info('captcha', `Dogrulanmis rolu kaldirildi: ${member.user.tag}`);
+          }
+        } catch (roleErr) {
+          logger.error('captcha', `Uye rol atama hatasi [${member.user.tag}]: ${roleErr.message}`);
         }
       }
       logger.info('captcha', `Mevcut uyeler: ${verifiedCount} yonetici muaf, ${unverifiedCount} uye dogrulama bekliyor - ${guild.name}`);
