@@ -206,22 +206,36 @@ async function autoSetupGuild(guild, settings) {
     logger.info('captcha', `Kanal izinleri ayarlandi: ${guild.name} (${successCount}/${channels.size} kanal)`);
 
     // 5. Mevcut uyelere rol ata
-    // Sunucu sahibi ve botlar haric herkese "Dogrulanmis" rolunu ver
-    // (mevcut uyeler zaten dogrulanmis kabul edilir)
+    // Yoneticiler ve sunucu sahibi -> Dogrulanmis (muaf)
+    // Diger herkes -> Dogrulanmamis (dogrulama yapmasi gerekecek)
     try {
       const members = await guild.members.fetch();
       let verifiedCount = 0;
+      let unverifiedCount = 0;
       for (const [, member] of members) {
         if (member.user.bot) continue; // Botlara rol verme
         if (member.id === guild.ownerId) continue; // Sunucu sahibi zaten her seyi gorebilir
 
-        // Dogrulanmis rolunu ver (mevcut uyeler dogrulanmis kabul edilir)
-        if (!member.roles.cache.has(verifiedRole.id)) {
-          await member.roles.add(verifiedRole.id, 'Captcha kurulumu - mevcut uye').catch(() => {});
-          verifiedCount++;
+        // Yonetici izni olan uyeler muaf (dogrulanmis)
+        if (member.permissions.has(PermissionFlagsBits.Administrator)) {
+          if (!member.roles.cache.has(verifiedRole.id)) {
+            await member.roles.add(verifiedRole.id, 'Captcha kurulumu - yonetici muaf').catch(() => {});
+            verifiedCount++;
+          }
+          continue;
+        }
+
+        // Diger uyeler: Dogrulanmamis rolu ver, dogrulama yapmasi gerekecek
+        if (!member.roles.cache.has(unverifiedRole.id)) {
+          await member.roles.add(unverifiedRole.id, 'Captcha kurulumu - dogrulama gerekli').catch(() => {});
+          unverifiedCount++;
+        }
+        // Eger onceden Dogrulanmis rolu varsa kaldir
+        if (member.roles.cache.has(verifiedRole.id)) {
+          await member.roles.remove(verifiedRole.id, 'Captcha kurulumu - tekrar dogrulama gerekli').catch(() => {});
         }
       }
-      logger.info('captcha', `Mevcut uyelere Dogrulanmis rolu verildi: ${verifiedCount} uye - ${guild.name}`);
+      logger.info('captcha', `Mevcut uyeler: ${verifiedCount} yonetici muaf, ${unverifiedCount} uye dogrulama bekliyor - ${guild.name}`);
     } catch (err) {
       logger.warn('captcha', `Mevcut uyelere rol atama hatasi: ${err.message}`);
     }
